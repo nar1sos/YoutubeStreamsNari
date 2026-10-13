@@ -326,7 +326,7 @@
       </div>
     </div>
 
-    <!-- CHANNEL TABS (Videos / Streams) -->
+    <!-- CHANNEL TABS -->
     <div class="channel-tabs">
       <button class="tab-btn active" id="tabVideosBtn" onclick="switchChannelTab('videos')">Видео</button>
       <button class="tab-btn" id="tabStreamsBtn" onclick="switchChannelTab('streams')">Стримы</button>
@@ -400,8 +400,8 @@
         <input type="file" id="inputThumbFile" accept="image/*">
       </div>
       <div class="form-group">
-        <label>Видеофайл (MP4 / WebM)</label>
-        <input type="file" id="inputVideoFile" accept="video/*">
+        <label>Видеофайл (MP4, MKV, WebM и др.)</label>
+        <input type="file" id="inputVideoFile" accept="video/mp4,video/mkv,video/webm,.mkv,.mp4,.webm">
       </div>
       <button class="submit-btn" onclick="addVideo()">Опубликовать</button>
     </div>
@@ -419,8 +419,8 @@
       videos: []
     };
 
-    let currentPage = 'recommendations'; // 'recommendations' or 'channel'
-    let currentChannelTab = 'videos'; // 'videos' or 'streams'
+    let currentPage = 'recommendations';
+    let currentChannelTab = 'videos';
 
     function saveDB() {
       try {
@@ -449,7 +449,6 @@
     }
 
     function render() {
-      // Channel Info
       document.getElementById('channelName').innerText = db.channel.name;
       document.getElementById('subsCount').innerText = db.channel.subs + " подписчиков";
       document.getElementById('viewsCount').innerText = db.channel.views + " просмотров";
@@ -472,11 +471,8 @@
         return;
       }
 
-      // Создаем копию массива и перемешиваем случайно для рекомендаций
       let shuffled = [...db.videos];
-      // Привязываем оригинальные индексы к элементам, чтобы работало воспроизведение
       let indexedVideos = shuffled.map((v, originalIndex) => ({ ...v, originalIndex }));
-      
       indexedVideos.sort(() => Math.random() - 0.5);
 
       indexedVideos.forEach((vid) => {
@@ -500,7 +496,6 @@
       const grid = document.getElementById('channelVideoGrid');
       grid.innerHTML = '';
 
-      // Фильтруем по вкладкам: видео или стримы
       let filtered = db.videos.map((v, originalIndex) => ({ ...v, originalIndex })).filter(vid => {
         if (currentChannelTab === 'videos') return !vid.isStream;
         if (currentChannelTab === 'streams') return vid.isStream;
@@ -550,12 +545,12 @@
 
     function playVideo(index) {
       const vid = db.videos[index];
-      if (!vid.videoUrl) {
+      if (!vid.videoBlobUrl) {
         alert("К этому ролику не прикреплен видеофайл!");
         return;
       }
       const player = document.getElementById('videoPlayer');
-      player.src = vid.videoUrl;
+      player.src = vid.videoBlobUrl;
       document.getElementById('modalVideoTitle').innerText = vid.title;
       document.getElementById('modalVideoMeta').innerText = vid.views + (vid.isStream ? " • Прямой эфир" : "");
       document.getElementById('playerModal').style.display = 'flex';
@@ -586,7 +581,7 @@
 
     async function addVideo() {
       const title = document.getElementById('inputVideoTitle').value;
-      const views = document.getElementById('inputVideoViews').value;
+      const views = document.getElementById('inputVideoViews', '').value || "0 просмотров";
       const isStream = document.getElementById('inputContentType').value === 'stream';
       const thumbFile = document.getElementById('inputThumbFile').files[0];
       const videoFile = document.getElementById('inputVideoFile').files[0];
@@ -599,15 +594,18 @@
       let thumbUrl = "";
       if (thumbFile) thumbUrl = await fileToBase64(thumbFile);
 
-      let videoUrl = "";
-      if (videoFile) videoUrl = await fileToBase64(videoFile);
+      let videoBlobUrl = "";
+      if (videoFile) {
+        // Создаем специальную ссылку Blob для поддержки больших файлов и разных форматов вроде MKV
+        videoBlobUrl = URL.createObjectURL(videoFile);
+      }
 
       db.videos.unshift({
         title,
         views,
         isStream,
         thumb: thumbUrl,
-        videoUrl: videoUrl
+        videoBlobUrl: videoBlobUrl
       });
 
       saveDB();
@@ -623,7 +621,6 @@
       }
     }
 
-    // Запуск (по умолчанию открываем главную / рекомендации)
     switchPage('recommendations');
   </script>
 </body>
