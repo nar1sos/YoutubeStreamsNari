@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Youtube (not fake)</title>
+  <title>YouTube Channel Simulator</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -292,12 +292,12 @@
   <header>
     <div class="logo" onclick="switchPage('recommendations')">
       <span class="logo-icon">▶</span>
-      <span>Youtube (not fake)</span>
+      <span>YouSimulator</span>
     </div>
     <div class="header-right">
       <button class="nav-btn" id="navHomeBtn" onclick="switchPage('recommendations')">🏠 Главная</button>
       <button class="nav-btn" id="navChannelBtn" onclick="switchPage('channel')">📺 Мой Канал</button>
-      <button class="admin-btn" onclick="openAdminModal()">???</button>
+      <button class="admin-btn" onclick="openAdminModal()">⚙️ Админка</button>
     </div>
   </header>
 
@@ -401,227 +401,69 @@
       </div>
       <div class="form-group">
         <label>Видеофайл (MP4, MKV, WebM и др.)</label>
-        <input type="file" id="inputVideoFile" accept="video/mp4,video/mkv,video/webm,.mkv,.mp4,.webm">
+        <input type="file" id="inputVideoFile" accept="video/*,.mkv,.mp4,.webm">
       </div>
       <button class="submit-btn" onclick="addVideo()">Опубликовать</button>
     </div>
   </div>
 
   <script>
-    let db = JSON.parse(localStorage.getItem('yt_sim_db')) || {
+    // --- INDEXEDDB SETUP FOR HEAVY FILES ---
+    let dbName = "YouSimulatorDB";
+    let dbVersion = 1;
+    let idb = null;
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          idb = request.result;
+          resolve(idb);
+        };
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+          if (!database.objectStoreNames.contains("videosStore")) {
+            database.createObjectStore("videosStore", { keyPath: "id", autoIncrement: true });
+          }
+        };
+      });
+    }
+
+    function saveVideoToIDB(videoFile) {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction(["videosStore"], "readwrite");
+        const store = transaction.objectStore("videosStore");
+        const request = store.add(videoFile);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function getVideoFromIDB(id) {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction(["videosStore"], "readonly");
+        const store = transaction.objectStore("videosStore");
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function deleteVideoFromIDB(id) {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction(["videosStore"], "readwrite");
+        const store = transaction.objectStore("videosStore");
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // --- APP STATE ---
+    let appData = JSON.parse(localStorage.getItem('yt_sim_meta')) || {
       channel: {
         name: "Мой Канал",
         subs: "100 тыс.",
         views: "1.5 млн",
-        avatar: "https://via.placeholder.com/100/ff0000/ffffff?text=Ава",
-        banner: "https://via.placeholder.com/1200x300/1f1f1f/ffffff?text=Баннер+Канала"
-      },
-      videos: []
-    };
-
-    let currentPage = 'recommendations';
-    let currentChannelTab = 'videos';
-
-    function saveDB() {
-      try {
-        localStorage.setItem('yt_sim_db', JSON.stringify(db));
-      } catch (e) {
-        alert("Ошибка! Файл слишком большой для памяти браузера.");
-      }
-    }
-
-    function switchPage(page) {
-      currentPage = page;
-      document.getElementById('pageRecommendations').style.display = (page === 'recommendations') ? 'block' : 'none';
-      document.getElementById('pageChannel').style.display = (page === 'channel') ? 'block' : 'none';
-
-      document.getElementById('navHomeBtn').className = (page === 'recommendations') ? 'nav-btn active' : 'nav-btn';
-      document.getElementById('navChannelBtn').className = (page === 'channel') ? 'nav-btn active' : 'nav-btn';
-
-      render();
-    }
-
-    function switchChannelTab(tab) {
-      currentChannelTab = tab;
-      document.getElementById('tabVideosBtn').className = (tab === 'videos') ? 'tab-btn active' : 'tab-btn';
-      document.getElementById('tabStreamsBtn').className = (tab === 'streams') ? 'tab-btn active' : 'tab-btn';
-      render();
-    }
-
-    function render() {
-      document.getElementById('channelName').innerText = db.channel.name;
-      document.getElementById('subsCount').innerText = db.channel.subs + " подписчиков";
-      document.getElementById('viewsCount').innerText = db.channel.views + " просмотров";
-      document.getElementById('channelAvatar').src = db.channel.avatar;
-      document.getElementById('channelBanner').src = db.channel.banner;
-
-      if (currentPage === 'recommendations') {
-        renderRecommendations();
-      } else {
-        renderChannelVideos();
-      }
-    }
-
-    function renderRecommendations() {
-      const grid = document.getElementById('recommendationsGrid');
-      grid.innerHTML = '';
-
-      if (db.videos.length === 0) {
-        grid.innerHTML = '<p style="color:#aaa;">Пока нет видео. Зайдите в «Админку», чтобы добавить их!</p>';
-        return;
-      }
-
-      let shuffled = [...db.videos];
-      let indexedVideos = shuffled.map((v, originalIndex) => ({ ...v, originalIndex }));
-      indexedVideos.sort(() => Math.random() - 0.5);
-
-      indexedVideos.forEach((vid) => {
-        const card = document.createElement('div');
-        card.className = 'video-card';
-        card.innerHTML = `
-          <div class="thumb-wrapper" onclick="playVideo(${vid.originalIndex})">
-            <img class="thumb-img" src="${vid.thumb || 'https://via.placeholder.com/300x170/222/fff?text=Без+превью'}" alt="thumb">
-            ${vid.isStream ? '<span class="badge-live">LIVE</span>' : ''}
-          </div>
-          <div class="video-details">
-            <div class="video-title" onclick="playVideo(${vid.originalIndex})">${vid.title}</div>
-            <div class="video-meta">${db.channel.name} • ${vid.views}</div>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    }
-
-    function renderChannelVideos() {
-      const grid = document.getElementById('channelVideoGrid');
-      grid.innerHTML = '';
-
-      let filtered = db.videos.map((v, originalIndex) => ({ ...v, originalIndex })).filter(vid => {
-        if (currentChannelTab === 'videos') return !vid.isStream;
-        if (currentChannelTab === 'streams') return vid.isStream;
-      });
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<p style="color:#aaa;">В этой вкладке пока ничего нет.</p>`;
-        return;
-      }
-
-      filtered.forEach((vid) => {
-        const card = document.createElement('div');
-        card.className = 'video-card';
-        card.innerHTML = `
-          <div class="thumb-wrapper" onclick="playVideo(${vid.originalIndex})">
-            <img class="thumb-img" src="${vid.thumb || 'https://via.placeholder.com/300x170/222/fff?text=Без+превью'}" alt="thumb">
-            ${vid.isStream ? '<span class="badge-live">LIVE</span>' : ''}
-          </div>
-          <div class="video-details">
-            <div class="video-title" onclick="playVideo(${vid.originalIndex})">${vid.title}</div>
-            <div class="video-meta">${vid.views}</div>
-            <button class="delete-card-btn" onclick="deleteVideo(${vid.originalIndex})">Удалить</button>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-      });
-    }
-
-    function openAdminModal() {
-      document.getElementById('inputChannelName').value = db.channel.name;
-      document.getElementById('inputSubs').value = db.channel.subs;
-      document.getElementById('inputViews').value = db.channel.views;
-      document.getElementById('adminModal').style.display = 'flex';
-    }
-    function closeAdminModal() {
-      document.getElementById('adminModal').style.display = 'none';
-    }
-
-    function playVideo(index) {
-      const vid = db.videos[index];
-      if (!vid.videoBlobUrl) {
-        alert("К этому ролику не прикреплен видеофайл!");
-        return;
-      }
-      const player = document.getElementById('videoPlayer');
-      player.src = vid.videoBlobUrl;
-      document.getElementById('modalVideoTitle').innerText = vid.title;
-      document.getElementById('modalVideoMeta').innerText = vid.views + (vid.isStream ? " • Прямой эфир" : "");
-      document.getElementById('playerModal').style.display = 'flex';
-    }
-
-    function closePlayerModal() {
-      const player = document.getElementById('videoPlayer');
-      player.pause();
-      player.src = "";
-      document.getElementById('playerModal').style.display = 'none';
-    }
-
-    async function saveChannelSettings() {
-      db.channel.name = document.getElementById('inputChannelName').value;
-      db.channel.subs = document.getElementById('inputSubs').value;
-      db.channel.views = document.getElementById('inputViews').value;
-
-      const avatarFile = document.getElementById('inputAvatarFile').files[0];
-      if (avatarFile) db.channel.avatar = await fileToBase64(avatarFile);
-
-      const bannerFile = document.getElementById('inputBannerFile').files[0];
-      if (bannerFile) db.channel.banner = await fileToBase64(bannerFile);
-
-      saveDB();
-      render();
-      closeAdminModal();
-    }
-
-    async function addVideo() {
-      const title = document.getElementById('inputVideoTitle').value;
-      const views = document.getElementById('inputVideoViews', '').value || "0 просмотров";
-      const isStream = document.getElementById('inputContentType').value === 'stream';
-      const thumbFile = document.getElementById('inputThumbFile').files[0];
-      const videoFile = document.getElementById('inputVideoFile').files[0];
-
-      if (!title) {
-        alert("Введите название!");
-        return;
-      }
-
-      let thumbUrl = "";
-      if (thumbFile) thumbUrl = await fileToBase64(thumbFile);
-
-      let videoBlobUrl = "";
-      if (videoFile) {
-        // Создаем специальную ссылку Blob для поддержки больших файлов и разных форматов вроде MKV
-        videoBlobUrl = URL.createObjectURL(videoFile);
-      }
-
-      db.videos.unshift({
-        title,
-        views,
-        isStream,
-        thumb: thumbUrl,
-        videoBlobUrl: videoBlobUrl
-      });
-
-      saveDB();
-      render();
-      closeAdminModal();
-    }
-
-    function deleteVideo(index) {
-      if (confirm("Удалить этот ролик?")) {
-        db.videos.splice(index, 1);
-        saveDB();
-        render();
-      }
-    }
-
-    switchPage('recommendations');
-  </script>
-</body>
-</html>
+        avatar:
