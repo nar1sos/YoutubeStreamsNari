@@ -204,7 +204,25 @@
     .video-meta {
       font-size: 13px;
       color: var(--text-muted);
+      margin-bottom: 6px;
     }
+    
+    .card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .edit-card-btn { background: #333; color: white; }
+    .edit-card-btn:hover { background: #444; }
+    .delete-card-btn { background: #ff3333; color: white; }
+    .delete-card-btn:hover { background: #e02b2b; }
 
     /* MODAL */
     .modal {
@@ -274,16 +292,6 @@
       cursor: pointer;
       margin-top: 10px;
     }
-    .delete-card-btn {
-      background: #ff3333;
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      margin-top: 6px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -351,7 +359,7 @@
   <div class="modal" id="adminModal">
     <div class="modal-content">
       <button class="close-btn" id="adminCloseBtn">✕</button>
-      <h2>Панель Администратора</h2>
+      <h2 id="adminModalTitle">Панель Администратора</h2>
       <br>
       
       <h3>Настройки Канала</h3>
@@ -379,7 +387,8 @@
 
       <hr style="margin: 20px 0; border-color:#333;">
 
-      <h3>Добавить Видео / Стрим</h3>
+      <h3 id="videoFormHeading">Добавить Видео / Стрим</h3>
+      <input type="hidden" id="editVideoIndex" value="-1">
       <div class="form-group">
         <label>Тип контента</label>
         <select id="inputContentType">
@@ -396,11 +405,11 @@
         <input type="text" id="inputVideoViews" placeholder="10 тыс. просмотров">
       </div>
       <div class="form-group">
-        <label>Превью (Thumbnail)</label>
+        <label>Превью (Thumbnail) — оставь пустым, если не нужно менять</label>
         <input type="file" id="inputThumbFile" accept="image/*">
       </div>
       <div class="form-group">
-        <label>Видеофайл (MP4, MKV, WebM и др.)</label>
+        <label>Видеофайл (MP4, MKV, WebM) — оставь пустым, чтобы не менять файл</label>
         <input type="file" id="inputVideoFile" accept="video/*,.mkv,.mp4,.webm">
       </div>
       <button class="submit-btn" id="publishVideoBtn">Опубликовать</button>
@@ -446,6 +455,16 @@
       document.getElementById('inputChannelName').value = appData.channel.name;
       document.getElementById('inputSubs').value = appData.channel.subs;
       document.getElementById('inputViews').value = appData.channel.views;
+      
+      // Сбрасываем форму добавления видео на режим создания
+      document.getElementById('editVideoIndex').value = "-1";
+      document.getElementById('videoFormHeading').innerText = "Добавить Видео / Стрим";
+      document.getElementById('publishVideoBtn').innerText = "Опубликовать";
+      document.getElementById('inputVideoTitle').value = "";
+      document.getElementById('inputVideoViews').value = "";
+      document.getElementById('inputThumbFile').value = "";
+      document.getElementById('inputVideoFile').value = "";
+
       document.getElementById('adminModal').style.display = 'flex';
     }
 
@@ -586,12 +605,20 @@
           <div class="video-details">
             <div class="video-title">${vid.title}</div>
             <div class="video-meta">${vid.views}</div>
-            <button class="delete-card-btn">Удалить</button>
+            <div class="card-actions">
+              <button class="action-btn edit-card-btn">Изменить</button>
+              <button class="action-btn delete-card-btn">Удалить</button>
+            </div>
           </div>
         `;
         card.querySelector('.thumb-wrapper').onclick = () => playVideo(vid.originalIndex);
         card.querySelector('.video-title').onclick = () => playVideo(vid.originalIndex);
         
+        card.querySelector('.edit-card-btn').onclick = (e) => {
+          e.stopPropagation();
+          openEditModal(vid.originalIndex);
+        };
+
         card.querySelector('.delete-card-btn').onclick = (e) => {
           e.stopPropagation();
           deleteVideo(vid.originalIndex);
@@ -652,7 +679,28 @@
       closeAdminModal();
     }
 
-    async function addVideo() {
+    // Открыть админку в режиме редактирования конкретного видео
+    function openEditModal(index) {
+      const vid = appData.videos[index];
+      document.getElementById('inputChannelName').value = appData.channel.name;
+      document.getElementById('inputSubs').value = appData.channel.subs;
+      document.getElementById('inputViews').value = appData.channel.views;
+
+      document.getElementById('editVideoIndex').value = index;
+      document.getElementById('videoFormHeading').innerText = "Редактировать Видео / Стрим";
+      document.getElementById('publishVideoBtn').innerText = "Сохранить изменения";
+      
+      document.getElementById('inputContentType').value = vid.isStream ? 'stream' : 'video';
+      document.getElementById('inputVideoTitle').value = vid.title;
+      document.getElementById('inputVideoViews').value = vid.views;
+      document.getElementById('inputThumbFile').value = "";
+      document.getElementById('inputVideoFile').value = "";
+
+      document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    async function handleVideoSubmit() {
+      const editIndex = parseInt(document.getElementById('editVideoIndex').value);
       const title = document.getElementById('inputVideoTitle').value;
       const views = document.getElementById('inputVideoViews').value || "0 просмотров";
       const isStream = document.getElementById('inputContentType').value === 'stream';
@@ -664,26 +712,45 @@
         return;
       }
 
-      let thumbUrl = "";
-      if (thumbFile) thumbUrl = await fileToBase64(thumbFile);
+      let thumbUrl = editIndex >= 0 ? appData.videos[editIndex].thumb : "";
+      if (thumbFile) {
+        thumbUrl = await fileToBase64(thumbFile);
+      }
 
-      let fileId = null;
+      let fileId = editIndex >= 0 ? appData.videos[editIndex].fileId : null;
       if (videoFile) {
+        // Если загружен новый файл, удаляем старый из IndexedDB чтобы не засорять память
+        if (editIndex >= 0 && appData.videos[editIndex].fileId !== null) {
+          await deleteVideoFromIDB(appData.videos[editIndex].fileId);
+        }
         fileId = await saveVideoToIDB(videoFile);
       }
 
-      appData.videos.unshift({
-        title,
-        views,
-        isStream,
-        thumb: thumbUrl,
-        fileId: fileId
-      });
+      if (editIndex >= 0) {
+        // Режим редактирования существующего ролика
+        appData.videos[editIndex] = {
+          title,
+          views,
+          isStream,
+          thumb: thumbUrl,
+          fileId: fileId
+        };
+        alert("Изменения успешно сохранены!");
+      } else {
+        // Режим создания нового ролика
+        appData.videos.unshift({
+          title,
+          views,
+          isStream,
+          thumb: thumbUrl,
+          fileId: fileId
+        });
+        alert("Видео успешно опубликовано!");
+      }
 
       saveMeta();
       render();
       closeAdminModal();
-      alert("Видео успешно опубликовано и сохранено в базе браузера!");
     }
 
     async function deleteVideo(index) {
@@ -702,7 +769,7 @@
       }
     }
 
-    // --- ПРИВЯЗКА СОБЫТИЙ ЧЕРЕЗ JS (БЕЗ ОШИБОК В HTML) ---
+    // --- ПРИВЯЗКА СОБЫТИЙ ---
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('logoBtn').onclick = () => switchPage('recommendations');
       document.getElementById('navHomeBtn').onclick = () => switchPage('recommendations');
@@ -716,9 +783,8 @@
       document.getElementById('playerCloseBtn').onclick = closePlayerModal;
 
       document.getElementById('saveChannelBtn').onclick = saveChannelSettings;
-      document.getElementById('publishVideoBtn').onclick = addVideo;
+      document.getElementById('publishVideoBtn').onclick = handleVideoSubmit;
 
-      // Инициализация базы данных
       initDB().then(() => {
         switchPage('recommendations');
       }).catch(err => {
