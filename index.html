@@ -51,7 +51,12 @@
       border-radius: 6px;
       font-size: 14px;
     }
-    .admin-btn {
+    .header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .nav-btn, .admin-btn {
       background: #272727;
       color: #fff;
       border: none;
@@ -59,8 +64,10 @@
       border-radius: 18px;
       cursor: pointer;
       font-weight: 500;
+      font-size: 14px;
     }
-    .admin-btn:hover { background: var(--button-hover); }
+    .nav-btn:hover, .admin-btn:hover { background: var(--button-hover); }
+    .nav-btn.active { background: #fff; color: #000; }
 
     /* BANNER & HEADER CHANNEL */
     .banner-container {
@@ -98,6 +105,31 @@
       display: flex;
       gap: 12px;
       margin-bottom: 10px;
+    }
+
+    /* CHANNEL TABS */
+    .channel-tabs {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      gap: 15px;
+      border-bottom: 1px solid #272727;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 10px 4px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-btn.active {
+      color: var(--text-main);
+      border-bottom-color: #fff;
     }
 
     /* CONTENT TABS */
@@ -206,7 +238,6 @@
       cursor: pointer;
     }
 
-    /* PLAYER FORM & STYLES */
     video {
       width: 100%;
       aspect-ratio: 16 / 9;
@@ -259,33 +290,51 @@
 
   <!-- HEADER -->
   <header>
-    <div class="logo">
+    <div class="logo" onclick="switchPage('recommendations')">
       <span class="logo-icon">▶</span>
       <span>YouSimulator</span>
     </div>
-    <button class="admin-btn" onclick="openAdminModal()">⚙️ Режим Админа</button>
+    <div class="header-right">
+      <button class="nav-btn" id="navHomeBtn" onclick="switchPage('recommendations')">🏠 Главная</button>
+      <button class="nav-btn" id="navChannelBtn" onclick="switchPage('channel')">📺 Мой Канал</button>
+      <button class="admin-btn" onclick="openAdminModal()">⚙️ Админка</button>
+    </div>
   </header>
 
-  <!-- BANNER & CHANNEL INFO -->
-  <div class="banner-container">
-    <img id="channelBanner" class="banner-img" src="https://via.placeholder.com/1200x300/1f1f1f/ffffff?text=Баннер+Канала" alt="Banner">
-  </div>
-
-  <div class="channel-header">
-    <img id="channelAvatar" class="avatar-img" src="https://via.placeholder.com/100/ff0000/ffffff?text=Ава" alt="Avatar">
-    <div class="channel-info">
-      <h1 id="channelName">Твой Канал</h1>
-      <div class="channel-stats">
-        <span id="subsCount">0 подписчиков</span> • 
-        <span id="viewsCount">0 просмотров</span>
-      </div>
+  <!-- RECOMMENDATIONS PAGE -->
+  <div id="pageRecommendations" class="page-container" style="display: none;">
+    <div class="container">
+      <h2 class="section-title">Рекомендации</h2>
+      <div class="video-grid" id="recommendationsGrid"></div>
     </div>
   </div>
 
-  <!-- CONTENT -->
-  <div class="container">
-    <h2 class="section-title">Видео и Стримы</h2>
-    <div class="video-grid" id="videoGrid"></div>
+  <!-- CHANNEL PAGE -->
+  <div id="pageChannel" class="page-container" style="display: block;">
+    <div class="banner-container">
+      <img id="channelBanner" class="banner-img" src="https://via.placeholder.com/1200x300/1f1f1f/ffffff?text=Баннер+Канала" alt="Banner">
+    </div>
+
+    <div class="channel-header">
+      <img id="channelAvatar" class="avatar-img" src="https://via.placeholder.com/100/ff0000/ffffff?text=Ава" alt="Avatar">
+      <div class="channel-info">
+        <h1 id="channelName">Твой Канал</h1>
+        <div class="channel-stats">
+          <span id="subsCount">0 подписчиков</span> • 
+          <span id="viewsCount">0 просмотров</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANNEL TABS (Videos / Streams) -->
+    <div class="channel-tabs">
+      <button class="tab-btn active" id="tabVideosBtn" onclick="switchChannelTab('videos')">Видео</button>
+      <button class="tab-btn" id="tabStreamsBtn" onclick="switchChannelTab('streams')">Стримы</button>
+    </div>
+
+    <div class="container">
+      <div class="video-grid" id="channelVideoGrid"></div>
+    </div>
   </div>
 
   <!-- PLAYER MODAL -->
@@ -305,14 +354,13 @@
       <h2>Панель Администратора</h2>
       <br>
       
-      <!-- CHANNEL SETTINGS -->
       <h3>Настройки Канала</h3>
       <div class="form-group">
         <label>Название канала</label>
         <input type="text" id="inputChannelName">
       </div>
       <div class="form-group">
-        <label>Подписчики (текстом, напр. "1.2M" или "500")</label>
+        <label>Подписчики</label>
         <input type="text" id="inputSubs">
       </div>
       <div class="form-group">
@@ -331,7 +379,6 @@
 
       <hr style="margin: 20px 0; border-color:#333;">
 
-      <!-- ADD VIDEO / STREAM -->
       <h3>Добавить Видео / Стрим</h3>
       <div class="form-group">
         <label>Тип контента</label>
@@ -341,27 +388,26 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Название роликов/стрима</label>
-        <input type="text" id="inputVideoTitle" placeholder="Мой крутой стрим!">
+        <label>Название</label>
+        <input type="text" id="inputVideoTitle" placeholder="Мой крутой ролик!">
       </div>
       <div class="form-group">
-        <label>Просмотры (напр. "15 тыс." или "1.2 тыс. зрителей")</label>
+        <label>Просмотры</label>
         <input type="text" id="inputVideoViews" placeholder="10 тыс. просмотров">
       </div>
       <div class="form-group">
-        <label>Картинка-превью (Thumbnail)</label>
+        <label>Превью (Thumbnail)</label>
         <input type="file" id="inputThumbFile" accept="image/*">
       </div>
       <div class="form-group">
-        <label>Локальный видеофайл (MP4 / WebM / MKV)</label>
+        <label>Видеофайл (MP4 / WebM)</label>
         <input type="file" id="inputVideoFile" accept="video/*">
       </div>
-      <button class="submit-btn" onclick="addVideo()">Опубликовать на канал</button>
+      <button class="submit-btn" onclick="addVideo()">Опубликовать</button>
     </div>
   </div>
 
   <script>
-    // INITIAL STATE & STORAGE
     let db = JSON.parse(localStorage.getItem('yt_sim_db')) || {
       channel: {
         name: "Мой Канал",
@@ -373,12 +419,33 @@
       videos: []
     };
 
+    let currentPage = 'recommendations'; // 'recommendations' or 'channel'
+    let currentChannelTab = 'videos'; // 'videos' or 'streams'
+
     function saveDB() {
       try {
         localStorage.setItem('yt_sim_db', JSON.stringify(db));
       } catch (e) {
-        alert("Ошибка сохранения! Возможно, файл превью слишком большой.");
+        alert("Ошибка! Файл слишком большой для памяти браузера.");
       }
+    }
+
+    function switchPage(page) {
+      currentPage = page;
+      document.getElementById('pageRecommendations').style.display = (page === 'recommendations') ? 'block' : 'none';
+      document.getElementById('pageChannel').style.display = (page === 'channel') ? 'block' : 'none';
+
+      document.getElementById('navHomeBtn').className = (page === 'recommendations') ? 'nav-btn active' : 'nav-btn';
+      document.getElementById('navChannelBtn').className = (page === 'channel') ? 'nav-btn active' : 'nav-btn';
+
+      render();
+    }
+
+    function switchChannelTab(tab) {
+      currentChannelTab = tab;
+      document.getElementById('tabVideosBtn').className = (tab === 'videos') ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('tabStreamsBtn').className = (tab === 'streams') ? 'tab-btn active' : 'tab-btn';
+      render();
     }
 
     function render() {
@@ -389,29 +456,79 @@
       document.getElementById('channelAvatar').src = db.channel.avatar;
       document.getElementById('channelBanner').src = db.channel.banner;
 
-      // Videos
-      const grid = document.getElementById('videoGrid');
+      if (currentPage === 'recommendations') {
+        renderRecommendations();
+      } else {
+        renderChannelVideos();
+      }
+    }
+
+    function renderRecommendations() {
+      const grid = document.getElementById('recommendationsGrid');
       grid.innerHTML = '';
 
-      db.videos.forEach((vid, index) => {
+      if (db.videos.length === 0) {
+        grid.innerHTML = '<p style="color:#aaa;">Пока нет видео. Зайдите в «Админку», чтобы добавить их!</p>';
+        return;
+      }
+
+      // Создаем копию массива и перемешиваем случайно для рекомендаций
+      let shuffled = [...db.videos];
+      // Привязываем оригинальные индексы к элементам, чтобы работало воспроизведение
+      let indexedVideos = shuffled.map((v, originalIndex) => ({ ...v, originalIndex }));
+      
+      indexedVideos.sort(() => Math.random() - 0.5);
+
+      indexedVideos.forEach((vid) => {
         const card = document.createElement('div');
         card.className = 'video-card';
         card.innerHTML = `
-          <div class="thumb-wrapper" onclick="playVideo(${index})">
+          <div class="thumb-wrapper" onclick="playVideo(${vid.originalIndex})">
             <img class="thumb-img" src="${vid.thumb || 'https://via.placeholder.com/300x170/222/fff?text=Без+превью'}" alt="thumb">
             ${vid.isStream ? '<span class="badge-live">LIVE</span>' : ''}
           </div>
           <div class="video-details">
-            <div class="video-title" onclick="playVideo(${index})">${vid.title}</div>
-            <div class="video-meta">${vid.views}</div>
-            <button class="delete-card-btn" onclick="deleteVideo(${index})">Удалить</button>
+            <div class="video-title" onclick="playVideo(${vid.originalIndex})">${vid.title}</div>
+            <div class="video-meta">${db.channel.name} • ${vid.views}</div>
           </div>
         `;
         grid.appendChild(card);
       });
     }
 
-    // FILE HELPER (BASE64)
+    function renderChannelVideos() {
+      const grid = document.getElementById('channelVideoGrid');
+      grid.innerHTML = '';
+
+      // Фильтруем по вкладкам: видео или стримы
+      let filtered = db.videos.map((v, originalIndex) => ({ ...v, originalIndex })).filter(vid => {
+        if (currentChannelTab === 'videos') return !vid.isStream;
+        if (currentChannelTab === 'streams') return vid.isStream;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<p style="color:#aaa;">В этой вкладке пока ничего нет.</p>`;
+        return;
+      }
+
+      filtered.forEach((vid) => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.innerHTML = `
+          <div class="thumb-wrapper" onclick="playVideo(${vid.originalIndex})">
+            <img class="thumb-img" src="${vid.thumb || 'https://via.placeholder.com/300x170/222/fff?text=Без+превью'}" alt="thumb">
+            ${vid.isStream ? '<span class="badge-live">LIVE</span>' : ''}
+          </div>
+          <div class="video-details">
+            <div class="video-title" onclick="playVideo(${vid.originalIndex})">${vid.title}</div>
+            <div class="video-meta">${vid.views}</div>
+            <button class="delete-card-btn" onclick="deleteVideo(${vid.originalIndex})">Удалить</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -421,7 +538,6 @@
       });
     }
 
-    // MODAL CONTROL
     function openAdminModal() {
       document.getElementById('inputChannelName').value = db.channel.name;
       document.getElementById('inputSubs').value = db.channel.subs;
@@ -435,7 +551,7 @@
     function playVideo(index) {
       const vid = db.videos[index];
       if (!vid.videoUrl) {
-        alert("К этому роликy/стриму не был прикреплен локальный видеофайл!");
+        alert("К этому ролику не прикреплен видеофайл!");
         return;
       }
       const player = document.getElementById('videoPlayer');
@@ -452,28 +568,22 @@
       document.getElementById('playerModal').style.display = 'none';
     }
 
-    // SAVE SETTINGS
     async function saveChannelSettings() {
       db.channel.name = document.getElementById('inputChannelName').value;
       db.channel.subs = document.getElementById('inputSubs').value;
       db.channel.views = document.getElementById('inputViews').value;
 
       const avatarFile = document.getElementById('inputAvatarFile').files[0];
-      if (avatarFile) {
-        db.channel.avatar = await fileToBase64(avatarFile);
-      }
+      if (avatarFile) db.channel.avatar = await fileToBase64(avatarFile);
 
       const bannerFile = document.getElementById('inputBannerFile').files[0];
-      if (bannerFile) {
-        db.channel.banner = await fileToBase64(bannerFile);
-      }
+      if (bannerFile) db.channel.banner = await fileToBase64(bannerFile);
 
       saveDB();
       render();
       closeAdminModal();
     }
 
-    // ADD VIDEO
     async function addVideo() {
       const title = document.getElementById('inputVideoTitle').value;
       const views = document.getElementById('inputVideoViews').value;
@@ -487,14 +597,10 @@
       }
 
       let thumbUrl = "";
-      if (thumbFile) {
-        thumbUrl = await fileToBase64(thumbFile);
-      }
+      if (thumbFile) thumbUrl = await fileToBase64(thumbFile);
 
       let videoUrl = "";
-      if (videoFile) {
-        videoUrl = await fileToBase64(videoFile);
-      }
+      if (videoFile) videoUrl = await fileToBase64(videoFile);
 
       db.videos.unshift({
         title,
@@ -517,8 +623,8 @@
       }
     }
 
-    // INIT
-    render();
+    // Запуск (по умолчанию открываем главную / рекомендации)
+    switchPage('recommendations');
   </script>
 </body>
 </html>
