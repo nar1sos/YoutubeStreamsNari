@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Channel Simulator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0f0f0f;
+      --card-bg: #1f1f1f;
+      --text-main: #f1f1f1;
+      --text-muted: #aaa;
+      --accent-red: #ff0000;
+      --button-hover: #3f3f3f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding-bottom: 50px;
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px;
+      background-color: var(--bg-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid #272727;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: -0.5px;
+      cursor: pointer;
+    }
+    .logo-icon {
+      background: var(--accent-red);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .admin-btn {
+      background: #272727;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 18px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .admin-btn:hover { background: var(--button-hover); }
+
+    /* BANNER & HEADER CHANNEL */
+    .banner-container {
+      width: 100%;
+      height: 180px;
+      background: #222;
+      overflow: hidden;
+      position: relative;
+    }
+    .banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .channel-header {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .avatar-img {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #333;
+    }
+    .channel-info h1 { font-size: 26px; margin-bottom: 6px; }
+    .channel-stats {
+      color: var(--text-muted);
+      font-size: 14px;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    /* CONTENT TABS */
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .section-title {
+      font-size: 20px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #272727;
+      padding-bottom: 8px;
+    }
+
+    /* GRID */
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .video-card {
+      background: transparent;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.2s;
+    }
+    .video-card:hover { transform: translateY(-4px); }
+
+    .thumb-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #222;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .badge-live {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: var(--accent-red);
+      color: white;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .video-details {
+      padding: 10px 4px;
+    }
+    .video-title {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .video-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* MODAL (PLAYER & ADMIN) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background: #212121;
+      border-radius: 12px;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      position: relative;
+    }
+    .close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    /* PLAYER FORM & STYLES */
+    video {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      background: black;
+    }
+
+    /* FORM STYLES */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #121212;
+      color: white;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent-red);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .delete-card-btn {
+      background: #ff3333;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">▶</span>
+      <span>YouSimulator</span>
+    </div>
+    <button class="admin-btn" onclick="openAdminModal()">⚙️ Режим Админа</button>
+  </header>
+
+  <!-- BANNER & CHANNEL INFO -->
+  <div class="banner-container">
+    <img id="channelBanner" class="banner-img" src="https://via.placeholder.com/1200x300/1f1f1f/ffffff?text=Баннер+Канала" alt="Banner">
+  </div>
+
+  <div class="channel-header">
+    <img id="channelAvatar" class="avatar-img" src="https://via.placeholder.com/100/ff0000/ffffff?text=Ава" alt="Avatar">
+    <div class="channel-info">
+      <h1 id="channelName">Твой Канал</h1>
+      <div class="channel-stats">
+        <span id="subsCount">0 подписчиков</span> • 
+        <span id="viewsCount">0 просмотров</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="container">
+    <h2 class="section-title">Видео и Стримы</h2>
+    <div class="video-grid" id="videoGrid"></div>
+  </div>
+
+  <!-- PLAYER MODAL -->
+  <div class="modal" id="playerModal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closePlayerModal()">✕</button>
+      <video id="videoPlayer" controls autoplay></video>
+      <h2 id="modalVideoTitle" style="margin-top:14px;">Название видео</h2>
+      <p id="modalVideoMeta" style="color:#aaa; font-size:14px; margin-top:4px;"></p>
+    </div>
+  </div>
+
+  <!-- ADMIN MODAL -->
+  <div class="modal" id="adminModal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeAdminModal()">✕</button>
+      <h2>Панель Администратора</h2>
+      <br>
+      
+      <!-- CHANNEL SETTINGS -->
+      <h3>Настройки Канала</h3>
+      <div class="form-group">
+        <label>Название канала</label>
+        <input type="text" id="inputChannelName">
+      </div>
+      <div class="form-group">
+        <label>Подписчики (текстом, напр. "1.2M" или "500")</label>
+        <input type="text" id="inputSubs">
+      </div>
+      <div class="form-group">
+        <label>Всего просмотров</label>
+        <input type="text" id="inputViews">
+      </div>
+      <div class="form-group">
+        <label>Аватарка (Файл)</label>
+        <input type="file" id="inputAvatarFile" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Баннер (Файл)</label>
+        <input type="file" id="inputBannerFile" accept="image/*">
+      </div>
+      <button class="submit-btn" onclick="saveChannelSettings()">Сохранить профиль</button>
+
+      <hr style="margin: 20px 0; border-color:#333;">
+
+      <!-- ADD VIDEO / STREAM -->
+      <h3>Добавить Видео / Стрим</h3>
+      <div class="form-group">
+        <label>Тип контента</label>
+        <select id="inputContentType">
+          <option value="video">Обычное Видео</option>
+          <option value="stream">Стрим (LIVE)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Название роликов/стрима</label>
+        <input type="text" id="inputVideoTitle" placeholder="Мой крутой стрим!">
+      </div>
+      <div class="form-group">
+        <label>Просмотры (напр. "15 тыс." или "1.2 тыс. зрителей")</label>
+        <input type="text" id="inputVideoViews" placeholder="10 тыс. просмотров">
+      </div>
+      <div class="form-group">
+        <label>Картинка-превью (Thumbnail)</label>
+        <input type="file" id="inputThumbFile" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Локальный видеофайл (MP4 / WebM / MKV)</label>
+        <input type="file" id="inputVideoFile" accept="video/*">
+      </div>
+      <button class="submit-btn" onclick="addVideo()">Опубликовать на канал</button>
+    </div>
+  </div>
+
+  <script>
+    // INITIAL STATE & STORAGE
+    let db = JSON.parse(localStorage.getItem('yt_sim_db')) || {
+      channel: {
+        name: "Мой Канал",
+        subs: "100 тыс.",
+        views: "1.5 млн",
+        avatar: "https://via.placeholder.com/100/ff0000/ffffff?text=Ава",
+        banner: "https://via.placeholder.com/1200x300/1f1f1f/ffffff?text=Баннер+Канала"
+      },
+      videos: []
+    };
+
+    function saveDB() {
+      try {
+        localStorage.setItem('yt_sim_db', JSON.stringify(db));
+      } catch (e) {
+        alert("Ошибка сохранения! Возможно, файл превью слишком большой.");
+      }
+    }
+
+    function render() {
+      // Channel Info
+      document.getElementById('channelName').innerText = db.channel.name;
+      document.getElementById('subsCount').innerText = db.channel.subs + " подписчиков";
+      document.getElementById('viewsCount').innerText = db.channel.views + " просмотров";
+      document.getElementById('channelAvatar').src = db.channel.avatar;
+      document.getElementById('channelBanner').src = db.channel.banner;
+
+      // Videos
+      const grid = document.getElementById('videoGrid');
+      grid.innerHTML = '';
+
+      db.videos.forEach((vid, index) => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.innerHTML = `
+          <div class="thumb-wrapper" onclick="playVideo(${index})">
+            <img class="thumb-img" src="${vid.thumb || 'https://via.placeholder.com/300x170/222/fff?text=Без+превью'}" alt="thumb">
+            ${vid.isStream ? '<span class="badge-live">LIVE</span>' : ''}
+          </div>
+          <div class="video-details">
+            <div class="video-title" onclick="playVideo(${index})">${vid.title}</div>
+            <div class="video-meta">${vid.views}</div>
+            <button class="delete-card-btn" onclick="deleteVideo(${index})">Удалить</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // FILE HELPER (BASE64)
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // MODAL CONTROL
+    function openAdminModal() {
+      document.getElementById('inputChannelName').value = db.channel.name;
+      document.getElementById('inputSubs').value = db.channel.subs;
+      document.getElementById('inputViews').value = db.channel.views;
+      document.getElementById('adminModal').style.display = 'flex';
+    }
+    function closeAdminModal() {
+      document.getElementById('adminModal').style.display = 'none';
+    }
+
+    function playVideo(index) {
+      const vid = db.videos[index];
+      if (!vid.videoUrl) {
+        alert("К этому роликy/стриму не был прикреплен локальный видеофайл!");
+        return;
+      }
+      const player = document.getElementById('videoPlayer');
+      player.src = vid.videoUrl;
+      document.getElementById('modalVideoTitle').innerText = vid.title;
+      document.getElementById('modalVideoMeta').innerText = vid.views + (vid.isStream ? " • Прямой эфир" : "");
+      document.getElementById('playerModal').style.display = 'flex';
+    }
+
+    function closePlayerModal() {
+      const player = document.getElementById('videoPlayer');
+      player.pause();
+      player.src = "";
+      document.getElementById('playerModal').style.display = 'none';
+    }
+
+    // SAVE SETTINGS
+    async function saveChannelSettings() {
+      db.channel.name = document.getElementById('inputChannelName').value;
+      db.channel.subs = document.getElementById('inputSubs').value;
+      db.channel.views = document.getElementById('inputViews').value;
+
+      const avatarFile = document.getElementById('inputAvatarFile').files[0];
+      if (avatarFile) {
+        db.channel.avatar = await fileToBase64(avatarFile);
+      }
+
+      const bannerFile = document.getElementById('inputBannerFile').files[0];
+      if (bannerFile) {
+        db.channel.banner = await fileToBase64(bannerFile);
+      }
+
+      saveDB();
+      render();
+      closeAdminModal();
+    }
+
+    // ADD VIDEO
+    async function addVideo() {
+      const title = document.getElementById('inputVideoTitle').value;
+      const views = document.getElementById('inputVideoViews').value;
+      const isStream = document.getElementById('inputContentType').value === 'stream';
+      const thumbFile = document.getElementById('inputThumbFile').files[0];
+      const videoFile = document.getElementById('inputVideoFile').files[0];
+
+      if (!title) {
+        alert("Введите название!");
+        return;
+      }
+
+      let thumbUrl = "";
+      if (thumbFile) {
+        thumbUrl = await fileToBase64(thumbFile);
+      }
+
+      let videoUrl = "";
+      if (videoFile) {
+        videoUrl = await fileToBase64(videoFile);
+      }
+
+      db.videos.unshift({
+        title,
+        views,
+        isStream,
+        thumb: thumbUrl,
+        videoUrl: videoUrl
+      });
+
+      saveDB();
+      render();
+      closeAdminModal();
+    }
+
+    function deleteVideo(index) {
+      if (confirm("Удалить этот ролик?")) {
+        db.videos.splice(index, 1);
+        saveDB();
+        render();
+      }
+    }
+
+    // INIT
+    render();
+  </script>
+</body>
+</html>
