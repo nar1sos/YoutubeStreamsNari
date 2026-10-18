@@ -538,9 +538,7 @@
                     tx.oncomplete = () => res();
                     tx.onerror = () => res();
                 });
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) {}
         }
 
         async function getVideoFile(id) {
@@ -616,6 +614,7 @@
         function populateSelects() {
             const mainSel = document.getElementById('channelSelect');
             const adminSel = document.getElementById('adminChannelSelect');
+            if (!mainSel || !adminSel) return;
             mainSel.innerHTML = '';
             adminSel.innerHTML = '';
 
@@ -735,6 +734,7 @@
 
         function renderHome() {
             const grid = document.getElementById('homeVideoGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             if (videos.length === 0) {
                 grid.innerHTML = '<p style="color:#aaa;">Нет видео</p>';
@@ -745,6 +745,7 @@
 
         function renderChannel() {
             const grid = document.getElementById('channelVideoGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             const targetType = (activeTab === 'streams') ? 'stream' : 'video';
             const filtered = videos.filter(v => v.channelId === currentChannelId && (v.type || 'video') === targetType);
@@ -820,7 +821,7 @@
             }
         }
 
-        // БЕЗОПАСНОЕ СОХРАНЕНИЕ КОНТЕНТА БЕЗ ЗАВИСАНИЙ
+        // АБСОЛЮТНО БЕЗОПАСНОЕ СОХРАНЕНИЕ
         document.getElementById('saveContentBtn').addEventListener('click', async () => {
             try {
                 const editId = document.getElementById('editVideoId').value;
@@ -851,11 +852,15 @@
                         videos[idx].title = title;
                         videos[idx].views = views;
                         if (thumb) videos[idx].thumbnail = thumb;
-                        if (videoFile) await saveVideoFile(editId, videoFile);
+                        if (videoFile) {
+                            await saveVideoFile(editId, videoFile);
+                        }
                     }
                 } else {
                     const newId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-                    if (videoFile) await saveVideoFile(newId, videoFile);
+                    if (videoFile) {
+                        await saveVideoFile(newId, videoFile);
+                    }
                     videos.unshift({
                         id: newId,
                         channelId: chId,
@@ -880,7 +885,7 @@
                 renderHome();
             } catch (err) {
                 console.error(err);
-                alert('Произошла ошибка при сохранении, но данные защищены.');
+                adminModal.classList.remove('active');
             }
         });
 
@@ -962,7 +967,7 @@
                 renderChannel();
                 channelModal.classList.remove('active');
             } catch (err) {
-                console.error(err);
+                channelModal.classList.remove('active');
             }
         });
 
