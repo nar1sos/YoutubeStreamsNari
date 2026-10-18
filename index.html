@@ -580,7 +580,6 @@
             });
         }
 
-        // Вспомогательная функция чтения картинок в DataURL
         function readFileAsDataURL(file) {
             return new Promise((resolve) => {
                 if (!file) return resolve(null);
@@ -740,7 +739,7 @@
             const grid = document.getElementById('channelVideoGrid');
             grid.innerHTML = '';
 
-            const filtered = videos.filter(v => v.channelId === currentChannelId && (v.type || 'video') === activeTab);
+            const filtered = videos.filter(v => v.channelId === currentChannelId && (v.type || 'video') === (activeTab === 'streams' ? 'stream' : 'video'));
 
             if (filtered.length === 0) {
                 grid.innerHTML = `<p style="color: #aaa;">На этом канале пока нет ${activeTab === 'videos' ? 'видео' : 'стримов'}.</p>`;
@@ -844,7 +843,6 @@
                 return;
             }
 
-            // Пытаемся зачитать файл обложки с ПК
             const thumbFileInput = document.getElementById('contentThumbFile');
             if (thumbFileInput.files && thumbFileInput.files[0]) {
                 const fileData = await readFileAsDataURL(thumbFileInput.files[0]);
@@ -887,8 +885,24 @@
                 videos.push(newVideoObj);
             }
 
+            // Переключаем активный канал на тот, в который сохраняли
+            currentChannelId = targetChannelId;
+
+            // Переключаем вкладку под тип контента
+            if (type === 'stream' || type === 'streams') {
+                activeTab = 'streams';
+                tabStreams.classList.add('active');
+                tabVideos.classList.remove('active');
+            } else {
+                activeTab = 'videos';
+                tabVideos.classList.add('active');
+                tabStreams.classList.remove('active');
+            }
+
             saveState();
+            populateChannelSelects();
             adminModal.classList.remove('active');
+            renderChannelHeader();
             renderChannelVideos();
             renderHomeFeed();
         });
@@ -945,14 +959,12 @@
                 return;
             }
 
-            // Загрузка аватарки с ПК
             const avatarFile = document.getElementById('newChAvatarFile').files[0];
             if (avatarFile) {
                 const avatarData = await readFileAsDataURL(avatarFile);
                 if (avatarData) avatar = avatarData;
             }
 
-            // Загрузка баннера с ПК
             const bannerFile = document.getElementById('newChBannerFile').files[0];
             if (bannerFile) {
                 const bannerData = await readFileAsDataURL(bannerFile);
@@ -1055,24 +1067,4 @@
         const tabStreams = document.getElementById('tabStreams');
 
         tabVideos.addEventListener('click', () => {
-            activeTab = 'videos';
-            tabVideos.classList.add('active');
-            tabStreams.classList.remove('active');
-            renderChannelVideos();
-        });
-
-        tabStreams.addEventListener('click', () => {
-            activeTab = 'streams';
-            tabStreams.classList.add('active');
-            tabVideos.classList.remove('active');
-            renderChannelVideos();
-        });
-
-        /* ==========================================================================
-           INITIALIZATION
-           ========================================================================== */
-        populateChannelSelects();
-        switchView('home');
-    </script>
-</body>
-</html>
+            activeTab = '
