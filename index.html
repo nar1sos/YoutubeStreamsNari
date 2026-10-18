@@ -275,13 +275,35 @@
         .card-actions {
             display: flex;
             justify-content: flex-end;
+            gap: 6px;
             padding: 0 12px 12px 12px;
         }
 
         .btn-sm {
-            padding: 4px 8px;
-            font-size: 0.75rem;
+            padding: 6px 12px;
+            font-size: 0.8rem;
             border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            font-weight: 500;
+        }
+
+        .btn-edit-card {
+            background-color: #3f3f3f;
+            color: white;
+        }
+
+        .btn-edit-card:hover {
+            background-color: #555;
+        }
+
+        .btn-del-card {
+            background-color: #8b0000;
+            color: white;
+        }
+
+        .btn-del-card:hover {
+            background-color: #a00000;
         }
 
         .modal {
@@ -345,19 +367,6 @@
             display: flex;
             gap: 10px;
             margin-left: auto;
-        }
-
-        .player-modal-content {
-            max-width: 900px;
-            width: 90%;
-            padding: 16px;
-        }
-
-        video {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background-color: black;
-            border-radius: 8px;
         }
     </style>
 </head>
@@ -447,11 +456,6 @@
                 <input type="text" id="contentThumbnail" placeholder="Или ссылка на обложку (URL)">
             </div>
 
-            <div class="form-group">
-                <label>Видеофайл (MP4, MKV, WebM)</label>
-                <input type="file" id="contentVideoFile" accept="video/*,.mkv">
-            </div>
-
             <div class="modal-actions">
                 <div class="modal-buttons-right">
                     <button class="btn" id="closeAdminBtn">Отмена</button>
@@ -496,79 +500,7 @@
         </div>
     </div>
 
-    <!-- PLAYER MODAL -->
-    <div class="modal" id="playerModal">
-        <div class="modal-content player-modal-content">
-            <video id="mainVideoPlayer" controls autoplay></video>
-            <h3 id="playerTitle" style="margin-top: 10px;"></h3>
-            <p id="playerStats" style="color: #aaa; font-size: 0.9rem; margin-top: 4px;"></p>
-            <div class="modal-actions" style="margin-top: 15px;">
-                <div class="modal-buttons-right">
-                    <button class="btn" id="closePlayerBtn">Закрыть</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        const DB_NAME = 'YouSimulatorDB';
-        const STORE_NAME = 'videos';
-
-        function openDB() {
-            return new Promise((resolve) => {
-                const req = indexedDB.open(DB_NAME, 1);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-                req.onsuccess = (e) => resolve(e.target.result);
-                req.onerror = () => resolve(null);
-            });
-        }
-
-        async function saveVideoFile(id, blob) {
-            try {
-                const db = await openDB();
-                if (!db) return;
-                return new Promise((res) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).put({ id: id, blob: blob });
-                    tx.oncomplete = () => res();
-                    tx.onerror = () => res();
-                });
-            } catch (err) {}
-        }
-
-        async function getVideoFile(id) {
-            try {
-                const db = await openDB();
-                if (!db) return null;
-                return new Promise((res) => {
-                    const tx = db.transaction(STORE_NAME, 'readonly');
-                    const req = tx.objectStore(STORE_NAME).get(id);
-                    req.onsuccess = () => res(req.result ? req.result.blob : null);
-                    req.onerror = () => res(null);
-                });
-            } catch (err) {
-                return null;
-            }
-        }
-
-        async function deleteVideoFile(id) {
-            try {
-                const db = await openDB();
-                if (!db) return;
-                return new Promise((res) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).delete(id);
-                    tx.oncomplete = () => res();
-                    tx.onerror = () => res();
-                });
-            } catch (err) {}
-        }
-
         function readFileAsDataURL(file) {
             return new Promise((res) => {
                 if (!file) return res(null);
@@ -662,12 +594,6 @@
                 </div>
             `;
 
-            card.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('btn-edit') && !e.target.classList.contains('btn-del')) {
-                    playVideo(video.id);
-                }
-            });
-
             if (isChannelView) {
                 card.addEventListener('dragstart', (e) => {
                     draggedVideoId = video.id;
@@ -714,15 +640,20 @@
                 actions.className = 'card-actions';
                 
                 const btnEdit = document.createElement('button');
-                btnEdit.className = 'btn btn-sm btn-edit';
-                btnEdit.textContent = '✏️';
-                btnEdit.addEventListener('click', () => editContent(video.id));
+                btnEdit.className = 'btn-sm btn-edit-card';
+                btnEdit.textContent = '✏️ Изменить';
+                btnEdit.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    editContent(video.id);
+                });
 
                 const btnDel = document.createElement('button');
-                btnDel.className = 'btn btn-sm btn-danger btn-del';
-                btnDel.style.marginLeft = '6px';
-                btnDel.textContent = '🗑️';
-                btnDel.addEventListener('click', () => removeContent(video.id));
+                btnDel.className = 'btn-sm btn-del-card';
+                btnDel.textContent = '🗑️ Удалить';
+                btnDel.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeContent(video.id);
+                });
 
                 actions.appendChild(btnEdit);
                 actions.appendChild(btnDel);
@@ -757,30 +688,6 @@
             filtered.forEach(v => grid.appendChild(createCard(v, true)));
         }
 
-        async function playVideo(id) {
-            const v = videos.find(item => item.id === id);
-            if (!v) return;
-            const modal = document.getElementById('playerModal');
-            const player = document.getElementById('mainVideoPlayer');
-            document.getElementById('playerTitle').textContent = v.title;
-            document.getElementById('playerStats').textContent = `${v.views} • ${v.date || 'Сегодня'}`;
-
-            const blob = await getVideoFile(id);
-            if (blob) {
-                player.src = URL.createObjectURL(blob);
-            } else {
-                player.src = '';
-            }
-            modal.classList.add('active');
-        }
-
-        document.getElementById('closePlayerBtn').addEventListener('click', () => {
-            const player = document.getElementById('mainVideoPlayer');
-            player.pause();
-            player.src = '';
-            document.getElementById('playerModal').classList.remove('active');
-        });
-
         const adminModal = document.getElementById('adminModal');
 
         document.getElementById('openAdminBtn').addEventListener('click', () => {
@@ -790,7 +697,6 @@
             document.getElementById('contentViews').value = '';
             document.getElementById('contentThumbnail').value = '';
             document.getElementById('contentThumbFile').value = '';
-            document.getElementById('contentVideoFile').value = '';
             adminModal.classList.add('active');
         });
 
@@ -807,21 +713,18 @@
             document.getElementById('contentViews').value = v.views;
             document.getElementById('contentThumbnail').value = v.thumbnail || '';
             document.getElementById('contentThumbFile').value = '';
-            document.getElementById('contentVideoFile').value = '';
             adminModal.classList.add('active');
         }
 
-        async function removeContent(id) {
-            if (confirm('Удалить контент?')) {
+        function removeContent(id) {
+            if (confirm('Точно удалить этот ролик/стрим?')) {
                 videos = videos.filter(v => v.id !== id);
-                await deleteVideoFile(id);
                 saveState();
                 renderChannel();
                 renderHome();
             }
         }
 
-        // АБСОЛЮТНО БЕЗОПАСНОЕ СОХРАНЕНИЕ
         document.getElementById('saveContentBtn').addEventListener('click', async () => {
             try {
                 const editId = document.getElementById('editVideoId').value;
@@ -842,8 +745,6 @@
                     if (data) thumb = data;
                 }
 
-                const videoFile = document.getElementById('contentVideoFile').files[0];
-
                 if (editId) {
                     const idx = videos.findIndex(v => v.id === editId);
                     if (idx !== -1) {
@@ -852,15 +753,9 @@
                         videos[idx].title = title;
                         videos[idx].views = views;
                         if (thumb) videos[idx].thumbnail = thumb;
-                        if (videoFile) {
-                            await saveVideoFile(editId, videoFile);
-                        }
                     }
                 } else {
                     const newId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-                    if (videoFile) {
-                        await saveVideoFile(newId, videoFile);
-                    }
                     videos.unshift({
                         id: newId,
                         channelId: chId,
@@ -884,7 +779,6 @@
                 renderChannel();
                 renderHome();
             } catch (err) {
-                console.error(err);
                 adminModal.classList.remove('active');
             }
         });
@@ -975,8 +869,6 @@
             const editId = document.getElementById('editChannelId').value;
             if (!editId) return;
             if (confirm('Удалить канал и все его ролики?')) {
-                const chVids = videos.filter(v => v.channelId === editId);
-                for (const v of chVids) await deleteVideoFile(v.id);
                 videos = videos.filter(v => v.channelId !== editId);
                 channels = channels.filter(c => c.id !== editId);
 
