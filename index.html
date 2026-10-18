@@ -530,13 +530,24 @@
             if (!currentChannelId || !channels.find(c => c.id === currentChannelId)) {
                 currentChannelId = channels[0].id;
             }
+
+            // Исправляем legacy данные без типа
+            videos = videos.map(v => {
+                if (!v.type) v.type = 'video';
+                return v;
+            });
+
             saveState();
         }
 
         function saveState() {
-            localStorage.setItem('yt_channels', JSON.stringify(channels));
-            localStorage.setItem('yt_videos', JSON.stringify(videos));
-            localStorage.setItem('yt_current_channel', currentChannelId);
+            try {
+                localStorage.setItem('yt_channels', JSON.stringify(channels));
+                localStorage.setItem('yt_videos', JSON.stringify(videos));
+                localStorage.setItem('yt_current_channel', currentChannelId);
+            } catch (e) {
+                alert('⚠️ Предупреждение: Память браузера переполнена! Попробуй использовать ссылки (URL) для обложек вместо тяжелых файлов.');
+            }
         }
 
         function getCurrentChannel() {
@@ -697,6 +708,7 @@
             document.getElementById('contentViews').value = '';
             document.getElementById('contentThumbnail').value = '';
             document.getElementById('contentThumbFile').value = '';
+            document.getElementById('contentType').value = 'video';
             adminModal.classList.add('active');
         });
 
@@ -729,7 +741,7 @@
             try {
                 const editId = document.getElementById('editVideoId').value;
                 const chId = document.getElementById('adminChannelSelect').value;
-                const type = document.getElementById('contentType').value;
+                const type = document.getElementById('contentType').value || 'video';
                 const title = document.getElementById('contentTitle').value.trim();
                 const views = document.getElementById('contentViews').value.trim() || '0 просмотров';
                 let thumb = document.getElementById('contentThumbnail').value.trim();
@@ -769,6 +781,7 @@
 
                 currentChannelId = chId;
                 activeTab = (type === 'stream') ? 'streams' : 'videos';
+                
                 document.getElementById('tabVideos').classList.toggle('active', activeTab === 'videos');
                 document.getElementById('tabStreams').classList.toggle('active', activeTab === 'streams');
 
@@ -779,6 +792,7 @@
                 renderChannel();
                 renderHome();
             } catch (err) {
+                console.error(err);
                 adminModal.classList.remove('active');
             }
         });
