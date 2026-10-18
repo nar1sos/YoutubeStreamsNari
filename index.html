@@ -374,7 +374,6 @@
             <span class="logo-icon">▶</span> YouSimulator
         </div>
         <div class="header-actions">
-            <!-- Выбор текущего канала -->
             <select id="channelSelect" class="channel-select"></select>
             <button class="btn" id="addChannelBtn">+ Новый Канал</button>
             <button class="btn btn-primary" id="openAdminBtn">Админ Панель</button>
@@ -455,9 +454,9 @@
             </div>
 
             <div class="form-group">
-                <label>Превью (Картинка URL или DataURL)</label>
-                <input type="text" id="contentThumbnail" placeholder="Ссылка на обложку или оставьте пустым">
+                <label>Обложка (Выберите файл с ПК или укажите URL)</label>
                 <input type="file" id="contentThumbFile" accept="image/*">
+                <input type="text" id="contentThumbnail" placeholder="Или ссылка на обложку (URL)">
             </div>
 
             <div class="form-group">
@@ -489,13 +488,17 @@
                 <label>Подписчики</label>
                 <input type="text" id="newChSubs" placeholder="Например: 150 тыс.">
             </div>
+
             <div class="form-group">
-                <label>Аватарка (URL)</label>
-                <input type="text" id="newChAvatar" placeholder="Ссылка на аватарку">
+                <label>Аватарка канала (Загрузить с ПК или URL)</label>
+                <input type="file" id="newChAvatarFile" accept="image/*">
+                <input type="text" id="newChAvatar" placeholder="Или вставьте ссылку на аватарку">
             </div>
+
             <div class="form-group">
-                <label>Баннер (URL)</label>
-                <input type="text" id="newChBanner" placeholder="Ссылка на баннер">
+                <label>Баннер канала (Загрузить с ПК или URL)</label>
+                <input type="file" id="newChBannerFile" accept="image/*">
+                <input type="text" id="newChBanner" placeholder="Или вставьте ссылку на баннер">
             </div>
 
             <div class="modal-actions">
@@ -524,7 +527,7 @@
 
     <script>
         /* ==========================================================================
-           INDEXEDDB: ХРАНЕНИЕ ТЯЖЕЛЫХ ВИДЕОФАЙЛОВ С УНИКАЛЬНЫМИ КЛЮЧАМИ
+           INDEXEDDB: ХРАНЕНИЕ ТЯЖЕЛЫХ ВИДЕОФАЙЛОВ
            ========================================================================== */
         const DB_NAME = 'YouSimulatorDB';
         const DB_VERSION = 1;
@@ -577,8 +580,18 @@
             });
         }
 
+        // Вспомогательная функция чтения картинок в DataURL
+        function readFileAsDataURL(file) {
+            return new Promise((resolve) => {
+                if (!file) return resolve(null);
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
         /* ==========================================================================
-           STATE & LOCALSTORAGE (С МИГРАЦИЕЙ СТАРЫХ ДАННЫХ)
+           STATE & LOCALSTORAGE
            ========================================================================== */
         let channels = JSON.parse(localStorage.getItem('yt_channels')) || [];
         let videos = JSON.parse(localStorage.getItem('yt_videos')) || [];
@@ -831,13 +844,11 @@
                 return;
             }
 
+            // Пытаемся зачитать файл обложки с ПК
             const thumbFileInput = document.getElementById('contentThumbFile');
             if (thumbFileInput.files && thumbFileInput.files[0]) {
-                thumbnail = await new Promise((res) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => res(e.target.result);
-                    reader.readAsDataURL(thumbFileInput.files[0]);
-                });
+                const fileData = await readFileAsDataURL(thumbFileInput.files[0]);
+                if (fileData) thumbnail = fileData;
             }
 
             const videoFileInput = document.getElementById('contentVideoFile');
@@ -883,24 +894,24 @@
         });
 
         /* ==========================================================================
-           CHANNEL MANAGEMENT (CREATE / EDIT / DELETE CHANNEL)
+           CHANNEL MANAGEMENT (CREATE / EDIT / DELETE CHANNEL WITH IMAGE FILES)
            ========================================================================== */
         const channelModal = document.getElementById('channelModal');
         const deleteChannelBtn = document.getElementById('deleteChannelBtn');
 
-        // Создать новый канал
         document.getElementById('addChannelBtn').addEventListener('click', () => {
             document.getElementById('channelModalTitle').textContent = 'Создать новый канал';
             document.getElementById('editChannelId').value = '';
             document.getElementById('newChName').value = '';
             document.getElementById('newChSubs').value = '0';
             document.getElementById('newChAvatar').value = '';
+            document.getElementById('newChAvatarFile').value = '';
             document.getElementById('newChBanner').value = '';
+            document.getElementById('newChBannerFile').value = '';
             deleteChannelBtn.style.display = 'none';
             channelModal.classList.add('active');
         });
 
-        // Редактировать текущий канал
         document.getElementById('editChannelSettingsBtn').addEventListener('click', () => {
             const ch = getCurrentChannel();
             if (!ch) return;
@@ -910,7 +921,9 @@
             document.getElementById('newChName').value = ch.name;
             document.getElementById('newChSubs').value = ch.subscribers || '0';
             document.getElementById('newChAvatar').value = ch.avatar || '';
+            document.getElementById('newChAvatarFile').value = '';
             document.getElementById('newChBanner').value = ch.banner || '';
+            document.getElementById('newChBannerFile').value = '';
             deleteChannelBtn.style.display = 'block';
             channelModal.classList.add('active');
         });
@@ -919,30 +932,42 @@
             channelModal.classList.remove('active');
         });
 
-        // Сохранить канал (создание или редактирование)
-        document.getElementById('saveChannelBtn').addEventListener('click', () => {
+        document.getElementById('saveChannelBtn').addEventListener('click', async () => {
             const editId = document.getElementById('editChannelId').value;
             const name = document.getElementById('newChName').value.trim();
             const subs = document.getElementById('newChSubs').value.trim() || '0';
-            const avatar = document.getElementById('newChAvatar').value.trim();
-            const banner = document.getElementById('newChBanner').value.trim();
+            
+            let avatar = document.getElementById('newChAvatar').value.trim();
+            let banner = document.getElementById('newChBanner').value.trim();
 
             if (!name) {
                 alert('Введите название канала!');
                 return;
             }
 
+            // Загрузка аватарки с ПК
+            const avatarFile = document.getElementById('newChAvatarFile').files[0];
+            if (avatarFile) {
+                const avatarData = await readFileAsDataURL(avatarFile);
+                if (avatarData) avatar = avatarData;
+            }
+
+            // Загрузка баннера с ПК
+            const bannerFile = document.getElementById('newChBannerFile').files[0];
+            if (bannerFile) {
+                const bannerData = await readFileAsDataURL(bannerFile);
+                if (bannerData) banner = bannerData;
+            }
+
             if (editId) {
-                // РЕДАКТИРОВАНИЕ
                 const index = channels.findIndex(c => c.id === editId);
                 if (index !== -1) {
                     channels[index].name = name;
                     channels[index].subscribers = subs;
-                    channels[index].avatar = avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=' + encodeURIComponent(name[0]);
-                    channels[index].banner = banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=' + encodeURIComponent(name);
+                    if (avatar) channels[index].avatar = avatar;
+                    if (banner) channels[index].banner = banner;
                 }
             } else {
-                // СОЗДАНИЕ
                 const newCh = {
                     id: 'ch_' + Date.now(),
                     name: name,
@@ -961,27 +986,24 @@
             channelModal.classList.remove('active');
         });
 
-        // Удалить канал
         deleteChannelBtn.addEventListener('click', async () => {
             const editId = document.getElementById('editChannelId').value;
             if (!editId) return;
 
             if (confirm('Вы уверены, что хотите полностью удалить этот канал и весь его контент?')) {
-                // Удаляем все видео этого канала и их файлы из IndexedDB
                 const channelVideos = videos.filter(v => v.channelId === editId);
                 for (const v of channelVideos) {
                     await deleteVideoFile(v.id);
                 }
                 videos = videos.filter(v => v.channelId !== editId);
 
-                // Удаляем сам канал
                 channels = channels.filter(c => c.id !== editId);
 
                 if (channels.length > 0) {
                     currentChannelId = channels[0].id;
                 } else {
                     currentChannelId = '';
-                    initAndMigrateData(); // Пересоздаст базовый канал, если удалили последний
+                    initAndMigrateData();
                 }
 
                 saveState();
