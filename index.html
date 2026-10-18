@@ -62,7 +62,7 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
 
         .btn {
@@ -88,6 +88,16 @@
 
         .btn-primary:hover {
             background-color: #d9d9d9;
+        }
+
+        .btn-danger {
+            background-color: #8b0000;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background-color: #a00000;
         }
 
         /* CHANNEL SELECTOR DROPDOWN */
@@ -154,6 +164,12 @@
         }
 
         .channel-details {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .channel-info-group {
             display: flex;
             align-items: center;
             gap: 20px;
@@ -324,9 +340,15 @@
 
         .modal-actions {
             display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
             margin-top: 10px;
+        }
+
+        .modal-buttons-right {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
         }
 
         /* PLAYER MODAL */
@@ -380,11 +402,14 @@
                 <div class="channel-header">
                     <img id="chBanner" class="channel-banner" src="" alt="Banner">
                     <div class="channel-details">
-                        <img id="chAvatar" class="channel-avatar" src="" alt="Avatar">
-                        <div class="channel-meta">
-                            <h1 id="chName">Название канала</h1>
-                            <p id="chSubs">0 подписчиков</p>
+                        <div class="channel-info-group">
+                            <img id="chAvatar" class="channel-avatar" src="" alt="Avatar">
+                            <div class="channel-meta">
+                                <h1 id="chName">Название канала</h1>
+                                <p id="chSubs">0 подписчиков</p>
+                            </div>
                         </div>
+                        <button class="btn" id="editChannelSettingsBtn">⚙️ Настройки канала</button>
                     </div>
                 </div>
 
@@ -442,19 +467,27 @@
             </div>
 
             <div class="modal-actions">
-                <button class="btn" id="closeAdminBtn">Отмена</button>
-                <button class="btn btn-primary" id="saveContentBtn">Сохранить</button>
+                <div class="modal-buttons-right">
+                    <button class="btn" id="closeAdminBtn">Отмена</button>
+                    <button class="btn btn-primary" id="saveContentBtn">Сохранить</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: ADD NEW CHANNEL -->
+    <!-- MODAL: CREATE / EDIT CHANNEL -->
     <div class="modal" id="channelModal">
         <div class="modal-content">
-            <h2>Создать новый канал</h2>
+            <h2 id="channelModalTitle">Создать новый канал</h2>
+            <input type="hidden" id="editChannelId" value="">
+
             <div class="form-group">
                 <label>Название канала</label>
                 <input type="text" id="newChName" placeholder="Мой игровой канал">
+            </div>
+            <div class="form-group">
+                <label>Подписчики</label>
+                <input type="text" id="newChSubs" placeholder="Например: 150 тыс.">
             </div>
             <div class="form-group">
                 <label>Аватарка (URL)</label>
@@ -464,9 +497,13 @@
                 <label>Баннер (URL)</label>
                 <input type="text" id="newChBanner" placeholder="Ссылка на баннер">
             </div>
+
             <div class="modal-actions">
-                <button class="btn" id="closeChannelBtn">Отмена</button>
-                <button class="btn btn-primary" id="saveChannelBtn">Создать</button>
+                <button class="btn btn-danger" id="deleteChannelBtn" style="display: none;">Удалить канал</button>
+                <div class="modal-buttons-right">
+                    <button class="btn" id="closeChannelBtn">Отмена</button>
+                    <button class="btn btn-primary" id="saveChannelBtn">Сохранить</button>
+                </div>
             </div>
         </div>
     </div>
@@ -478,7 +515,9 @@
             <h3 id="playerTitle" style="margin-top: 10px;"></h3>
             <p id="playerStats" style="color: #aaa; font-size: 0.9rem; margin-top: 4px;"></p>
             <div class="modal-actions" style="margin-top: 15px;">
-                <button class="btn" id="closePlayerBtn">Закрыть</button>
+                <div class="modal-buttons-right">
+                    <button class="btn" id="closePlayerBtn">Закрыть</button>
+                </div>
             </div>
         </div>
     </div>
@@ -545,9 +584,7 @@
         let videos = JSON.parse(localStorage.getItem('yt_videos')) || [];
         let currentChannelId = localStorage.getItem('yt_current_channel') || '';
 
-        // Функция гарантированной миграции
         function initAndMigrateData() {
-            // Если нет ни одного канала, создаем главный по умолчанию
             if (channels.length === 0) {
                 channels.push({
                     id: 'ch_default_' + Date.now(),
@@ -564,14 +601,12 @@
                 localStorage.setItem('yt_current_channel', currentChannelId);
             }
 
-            // Проверяем старые видео: если у них не было channelId, отдаем их первому каналу
             let updated = false;
             videos = videos.map((v, index) => {
                 if (!v.channelId) {
                     v.channelId = channels[0].id;
                     updated = true;
                 }
-                // Гарантируем наличие уникального ID
                 if (!v.id) {
                     v.id = 'vid_' + Date.now() + '_' + index;
                     updated = true;
@@ -589,7 +624,7 @@
         /* ==========================================================================
            UI RENDERERS & NAVIGATION
            ========================================================================== */
-        let activeTab = 'videos'; // 'videos' или 'streams'
+        let activeTab = 'videos';
 
         function saveState() {
             localStorage.setItem('yt_channels', JSON.stringify(channels));
@@ -622,6 +657,7 @@
 
         function renderChannelHeader() {
             const ch = getCurrentChannel();
+            if (!ch) return;
             document.getElementById('chBanner').src = ch.banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=Banner';
             document.getElementById('chAvatar').src = ch.avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=Avatar';
             document.getElementById('chName').textContent = ch.name;
@@ -644,7 +680,6 @@
                 </div>
             `;
 
-            // Клик по карточке — открыть видеоплеер
             card.addEventListener('click', (e) => {
                 if (!e.target.classList.contains('btn-edit') && !e.target.classList.contains('btn-delete')) {
                     playVideo(video.id);
@@ -692,7 +727,6 @@
             const grid = document.getElementById('channelVideoGrid');
             grid.innerHTML = '';
 
-            // Фильтруем контент по текущему каналу и выбранной вкладке (видео / стрим)
             const filtered = videos.filter(v => v.channelId === currentChannelId && (v.type || 'video') === activeTab);
 
             if (filtered.length === 0) {
@@ -718,7 +752,6 @@
             document.getElementById('playerTitle').textContent = videoData.title;
             document.getElementById('playerStats').textContent = `${videoData.views} • ${videoData.date || 'Сегодня'}`;
 
-            // Загружаем Blob из IndexedDB
             const blob = await getVideoFile(videoId);
             if (blob) {
                 videoElem.src = URL.createObjectURL(blob);
@@ -739,7 +772,7 @@
         });
 
         /* ==========================================================================
-           ADMIN PANEL: ADD / EDIT / DELETE
+           ADMIN PANEL: ADD / EDIT / DELETE CONTENT
            ========================================================================== */
         const adminModal = document.getElementById('adminModal');
 
@@ -798,7 +831,6 @@
                 return;
             }
 
-            // Проверяем, загружен ли новый файл обложки
             const thumbFileInput = document.getElementById('contentThumbFile');
             if (thumbFileInput.files && thumbFileInput.files[0]) {
                 thumbnail = await new Promise((res) => {
@@ -812,7 +844,6 @@
             const newVideoFile = videoFileInput.files[0];
 
             if (editId) {
-                // РЕДАКТИРОВАНИЕ
                 const index = videos.findIndex(v => v.id === editId);
                 if (index !== -1) {
                     videos[index].channelId = targetChannelId;
@@ -826,7 +857,6 @@
                     }
                 }
             } else {
-                // ДОБАВЛЕНИЕ НОВОГО ВИДЕО
                 const uniqueId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
                 if (newVideoFile) {
@@ -853,14 +883,35 @@
         });
 
         /* ==========================================================================
-           CHANNEL MANAGEMENT (NEW CHANNEL)
+           CHANNEL MANAGEMENT (CREATE / EDIT / DELETE CHANNEL)
            ========================================================================== */
         const channelModal = document.getElementById('channelModal');
+        const deleteChannelBtn = document.getElementById('deleteChannelBtn');
 
+        // Создать новый канал
         document.getElementById('addChannelBtn').addEventListener('click', () => {
+            document.getElementById('channelModalTitle').textContent = 'Создать новый канал';
+            document.getElementById('editChannelId').value = '';
             document.getElementById('newChName').value = '';
+            document.getElementById('newChSubs').value = '0';
             document.getElementById('newChAvatar').value = '';
             document.getElementById('newChBanner').value = '';
+            deleteChannelBtn.style.display = 'none';
+            channelModal.classList.add('active');
+        });
+
+        // Редактировать текущий канал
+        document.getElementById('editChannelSettingsBtn').addEventListener('click', () => {
+            const ch = getCurrentChannel();
+            if (!ch) return;
+
+            document.getElementById('channelModalTitle').textContent = 'Настройки канала';
+            document.getElementById('editChannelId').value = ch.id;
+            document.getElementById('newChName').value = ch.name;
+            document.getElementById('newChSubs').value = ch.subscribers || '0';
+            document.getElementById('newChAvatar').value = ch.avatar || '';
+            document.getElementById('newChBanner').value = ch.banner || '';
+            deleteChannelBtn.style.display = 'block';
             channelModal.classList.add('active');
         });
 
@@ -868,8 +919,11 @@
             channelModal.classList.remove('active');
         });
 
+        // Сохранить канал (создание или редактирование)
         document.getElementById('saveChannelBtn').addEventListener('click', () => {
+            const editId = document.getElementById('editChannelId').value;
             const name = document.getElementById('newChName').value.trim();
+            const subs = document.getElementById('newChSubs').value.trim() || '0';
             const avatar = document.getElementById('newChAvatar').value.trim();
             const banner = document.getElementById('newChBanner').value.trim();
 
@@ -878,22 +932,65 @@
                 return;
             }
 
-            const newCh = {
-                id: 'ch_' + Date.now(),
-                name: name,
-                avatar: avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=' + encodeURIComponent(name[0]),
-                banner: banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=' + encodeURIComponent(name),
-                subscribers: '0'
-            };
+            if (editId) {
+                // РЕДАКТИРОВАНИЕ
+                const index = channels.findIndex(c => c.id === editId);
+                if (index !== -1) {
+                    channels[index].name = name;
+                    channels[index].subscribers = subs;
+                    channels[index].avatar = avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=' + encodeURIComponent(name[0]);
+                    channels[index].banner = banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=' + encodeURIComponent(name);
+                }
+            } else {
+                // СОЗДАНИЕ
+                const newCh = {
+                    id: 'ch_' + Date.now(),
+                    name: name,
+                    subscribers: subs,
+                    avatar: avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=' + encodeURIComponent(name[0]),
+                    banner: banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=' + encodeURIComponent(name)
+                };
+                channels.push(newCh);
+                currentChannelId = newCh.id;
+            }
 
-            channels.push(newCh);
-            currentChannelId = newCh.id;
             saveState();
-
             populateChannelSelects();
             renderChannelHeader();
             renderChannelVideos();
             channelModal.classList.remove('active');
+        });
+
+        // Удалить канал
+        deleteChannelBtn.addEventListener('click', async () => {
+            const editId = document.getElementById('editChannelId').value;
+            if (!editId) return;
+
+            if (confirm('Вы уверены, что хотите полностью удалить этот канал и весь его контент?')) {
+                // Удаляем все видео этого канала и их файлы из IndexedDB
+                const channelVideos = videos.filter(v => v.channelId === editId);
+                for (const v of channelVideos) {
+                    await deleteVideoFile(v.id);
+                }
+                videos = videos.filter(v => v.channelId !== editId);
+
+                // Удаляем сам канал
+                channels = channels.filter(c => c.id !== editId);
+
+                if (channels.length > 0) {
+                    currentChannelId = channels[0].id;
+                } else {
+                    currentChannelId = '';
+                    initAndMigrateData(); // Пересоздаст базовый канал, если удалили последний
+                }
+
+                saveState();
+                populateChannelSelects();
+                renderChannelHeader();
+                renderChannelVideos();
+                renderHomeFeed();
+                channelModal.classList.remove('active');
+            }
         });
 
         document.getElementById('channelSelect').addEventListener('change', (e) => {
@@ -932,7 +1029,6 @@
         navHome.addEventListener('click', () => switchView('home'));
         navChannel.addEventListener('click', () => switchView('channel'));
 
-        // Sub-tabs (Videos / Streams)
         const tabVideos = document.getElementById('tabVideos');
         const tabStreams = document.getElementById('tabStreams');
 
