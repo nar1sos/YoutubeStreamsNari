@@ -210,7 +210,7 @@
             border-bottom-color: var(--text-color);
         }
 
-        /* GRID & CARDS */
+        /* GRID & DRAGGABLE CARDS */
         .video-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -220,15 +220,26 @@
         .video-card {
             display: flex;
             flex-direction: column;
-            cursor: pointer;
+            cursor: grab;
             border-radius: 12px;
             overflow: hidden;
             background-color: var(--card-bg);
-            transition: transform 0.2s;
+            transition: transform 0.2s, opacity 0.2s, border-color 0.2s;
+            border: 2px solid transparent;
         }
 
-        .video-card:hover {
-            transform: translateY(-4px);
+        .video-card:active {
+            cursor: grabbing;
+        }
+
+        .video-card.dragging {
+            opacity: 0.4;
+            border-color: var(--accent-color);
+        }
+
+        .video-card.drag-over {
+            border-color: var(--text-color);
+            transform: scale(1.02);
         }
 
         .thumbnail-container {
@@ -400,6 +411,7 @@
                     <div class="sub-tab" id="tabStreams">Стримы</div>
                 </div>
 
+                <p style="color: #666; font-size: 0.8rem; margin-bottom: 12px;">💡 Зажми карточку и перетащи её, чтобы изменить порядок роликов</p>
                 <div class="video-grid" id="channelVideoGrid"></div>
             </div>
         </div>
@@ -566,6 +578,7 @@
         let videos = JSON.parse(localStorage.getItem('yt_videos')) || [];
         let currentChannelId = localStorage.getItem('yt_current_channel') || '';
         let activeTab = 'videos';
+        let draggedVideoId = null;
 
         function initData() {
             if (channels.length === 0) {
@@ -625,6 +638,12 @@
         function createCard(video, isChannelView = false) {
             const card = document.createElement('div');
             card.className = 'video-card';
+            card.setAttribute('data-id', video.id);
+
+            if (isChannelView) {
+                card.setAttribute('draggable', 'true');
+            }
+
             const thumb = video.thumbnail || 'https://via.placeholder.com/320x180/272727/ffffff?text=No+Thumb';
 
             card.innerHTML = `
@@ -644,6 +663,48 @@
             });
 
             if (isChannelView) {
+                // DRAG AND DROP LISTENERS
+                card.addEventListener('dragstart', (e) => {
+                    draggedVideoId = video.id;
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    document.querySelectorAll('.video-card').forEach(c => c.classList.remove('drag-over'));
+                });
+
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (draggedVideoId !== video.id) {
+                        card.classList.add('drag-over');
+                    }
+                });
+
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drag-over');
+                });
+
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+
+                    if (draggedVideoId && draggedVideoId !== video.id) {
+                        const fromIndex = videos.findIndex(v => v.id === draggedVideoId);
+                        const toIndex = videos.findIndex(v => v.id === video.id);
+
+                        if (fromIndex !== -1 && toIndex !== -1) {
+                            const [movedItem] = videos.splice(fromIndex, 1);
+                            videos.splice(toIndex, 0, movedItem);
+                            saveState();
+                            renderChannel();
+                            renderHome();
+                        }
+                    }
+                });
+
                 const actions = document.createElement('div');
                 actions.className = 'card-actions';
                 
@@ -786,7 +847,7 @@
             } else {
                 const newId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
                 if (videoFile) await saveVideoFile(newId, videoFile);
-                videos.push({
+                videos.unshift({
                     id: newId,
                     channelId: chId,
                     type: type,
