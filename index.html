@@ -100,7 +100,6 @@
             background-color: #a00000;
         }
 
-        /* CHANNEL SELECTOR DROPDOWN */
         .channel-select {
             background-color: #272727;
             color: var(--text-color);
@@ -111,13 +110,12 @@
             cursor: pointer;
         }
 
-        /* MAIN CONTENT AREA */
+        /* LAYOUT */
         .main-container {
             display: flex;
             flex: 1;
         }
 
-        /* NAVIGATION TABS */
         nav {
             width: 220px;
             padding: 12px;
@@ -132,7 +130,6 @@
             border-radius: 10px;
             cursor: pointer;
             color: var(--text-color);
-            text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -142,14 +139,13 @@
             background-color: var(--hover-color);
         }
 
-        /* CONTENT VIEW */
         .content {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
         }
 
-        /* CHANNEL BANNER & INFO */
+        /* CHANNEL HEADER */
         .channel-header {
             margin-bottom: 24px;
         }
@@ -193,7 +189,6 @@
             font-size: 0.9rem;
         }
 
-        /* TABS (VIDEOS / STREAMS) */
         .sub-tabs {
             display: flex;
             gap: 20px;
@@ -215,7 +210,7 @@
             border-bottom-color: var(--text-color);
         }
 
-        /* VIDEO GRID */
+        /* GRID & CARDS */
         .video-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -259,7 +254,6 @@
         .video-title {
             font-size: 0.95rem;
             font-weight: 600;
-            line-clamp: 2;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -283,7 +277,7 @@
             border-radius: 6px;
         }
 
-        /* MODAL WINDOWS */
+        /* MODALS */
         .modal {
             display: none;
             position: fixed;
@@ -312,10 +306,6 @@
             gap: 16px;
             max-height: 90vh;
             overflow-y: auto;
-        }
-
-        .modal-content h2 {
-            margin-bottom: 8px;
         }
 
         .form-group {
@@ -351,7 +341,6 @@
             margin-left: auto;
         }
 
-        /* PLAYER MODAL */
         .player-modal-content {
             max-width: 900px;
             width: 90%;
@@ -368,7 +357,6 @@
 </head>
 <body>
 
-    <!-- HEADER -->
     <header>
         <div class="logo" id="goHomeBtn">
             <span class="logo-icon">▶</span> YouSimulator
@@ -381,22 +369,17 @@
     </header>
 
     <div class="main-container">
-        <!-- NAVIGATION -->
         <nav>
             <div class="nav-item active" id="navHome">🏠 Главная</div>
             <div class="nav-item" id="navChannel">👤 Мой Канал</div>
         </nav>
 
-        <!-- MAIN CONTENT -->
         <div class="content">
-            
-            <!-- VIEW: HOME FEED -->
             <div id="viewHome">
                 <h2 style="margin-bottom: 16px;">Рекомендации</h2>
                 <div class="video-grid" id="homeVideoGrid"></div>
             </div>
 
-            <!-- VIEW: CHANNEL PAGE -->
             <div id="viewChannel" style="display: none;">
                 <div class="channel-header">
                     <img id="chBanner" class="channel-banner" src="" alt="Banner">
@@ -419,15 +402,13 @@
 
                 <div class="video-grid" id="channelVideoGrid"></div>
             </div>
-
         </div>
     </div>
 
-    <!-- MODAL: ADMIN PANEL (ADD / EDIT CONTENT) -->
+    <!-- ADMIN MODAL -->
     <div class="modal" id="adminModal">
         <div class="modal-content">
             <h2 id="modalTitle">Добавить / Редактировать контент</h2>
-            
             <input type="hidden" id="editVideoId" value="">
 
             <div class="form-group">
@@ -454,7 +435,7 @@
             </div>
 
             <div class="form-group">
-                <label>Обложка (Выберите файл с ПК или укажите URL)</label>
+                <label>Обложка (Файл с ПК или URL)</label>
                 <input type="file" id="contentThumbFile" accept="image/*">
                 <input type="text" id="contentThumbnail" placeholder="Или ссылка на обложку (URL)">
             </div>
@@ -462,7 +443,6 @@
             <div class="form-group">
                 <label>Видеофайл (MP4, MKV, WebM)</label>
                 <input type="file" id="contentVideoFile" accept="video/*,.mkv">
-                <small style="color: #aaa;">Если редактируете только обложку/текст, файл заново выбирать не нужно.</small>
             </div>
 
             <div class="modal-actions">
@@ -474,7 +454,7 @@
         </div>
     </div>
 
-    <!-- MODAL: CREATE / EDIT CHANNEL -->
+    <!-- CHANNEL MODAL -->
     <div class="modal" id="channelModal">
         <div class="modal-content">
             <h2 id="channelModalTitle">Создать новый канал</h2>
@@ -488,17 +468,15 @@
                 <label>Подписчики</label>
                 <input type="text" id="newChSubs" placeholder="Например: 150 тыс.">
             </div>
-
             <div class="form-group">
-                <label>Аватарка канала (Загрузить с ПК или URL)</label>
+                <label>Аватарка (Файл с ПК или URL)</label>
                 <input type="file" id="newChAvatarFile" accept="image/*">
-                <input type="text" id="newChAvatar" placeholder="Или вставьте ссылку на аватарку">
+                <input type="text" id="newChAvatar" placeholder="Или URL аватарки">
             </div>
-
             <div class="form-group">
-                <label>Баннер канала (Загрузить с ПК или URL)</label>
+                <label>Баннер (Файл с ПК или URL)</label>
                 <input type="file" id="newChBannerFile" accept="image/*">
-                <input type="text" id="newChBanner" placeholder="Или вставьте ссылку на баннер">
+                <input type="text" id="newChBanner" placeholder="Или URL баннера">
             </div>
 
             <div class="modal-actions">
@@ -511,7 +489,7 @@
         </div>
     </div>
 
-    <!-- MODAL: VIDEO PLAYER -->
+    <!-- PLAYER MODAL -->
     <div class="modal" id="playerModal">
         <div class="modal-content player-modal-content">
             <video id="mainVideoPlayer" controls autoplay></video>
@@ -526,117 +504,84 @@
     </div>
 
     <script>
-        /* ==========================================================================
-           INDEXEDDB: ХРАНЕНИЕ ТЯЖЕЛЫХ ВИДЕОФАЙЛОВ
-           ========================================================================== */
+        // --- INDEXEDDB ---
         const DB_NAME = 'YouSimulatorDB';
-        const DB_VERSION = 1;
         const STORE_NAME = 'videos';
 
         function openDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onupgradeneeded = (e) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = (e) => {
                     const db = e.target.result;
                     if (!db.objectStoreNames.contains(STORE_NAME)) {
                         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                     }
                 };
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e.target.error);
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
             });
         }
 
-        async function saveVideoFile(videoId, fileBlob) {
+        async function saveVideoFile(id, blob) {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
+            return new Promise((res, rej) => {
                 const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                store.put({ id: videoId, blob: fileBlob });
-                tx.oncomplete = () => resolve();
-                tx.onerror = (e) => reject(e.target.error);
+                tx.objectStore(STORE_NAME).put({ id: id, blob: blob });
+                tx.oncomplete = () => res();
+                tx.onerror = (e) => rej(e.target.error);
             });
         }
 
-        async function getVideoFile(videoId) {
+        async function getVideoFile(id) {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
+            return new Promise((res, rej) => {
                 const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const request = store.get(videoId);
-                request.onsuccess = () => resolve(request.result ? request.result.blob : null);
-                request.onerror = (e) => reject(e.target.error);
+                const req = tx.objectStore(STORE_NAME).get(id);
+                req.onsuccess = () => res(req.result ? req.result.blob : null);
+                req.onerror = (e) => rej(e.target.error);
             });
         }
 
-        async function deleteVideoFile(videoId) {
+        async function deleteVideoFile(id) {
             const db = await openDB();
-            return new Promise((resolve, reject) => {
+            return new Promise((res, rej) => {
                 const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                store.delete(videoId);
-                tx.oncomplete = () => resolve();
-                tx.onerror = (e) => reject(e.target.error);
+                tx.objectStore(STORE_NAME).delete(id);
+                tx.oncomplete = () => res();
+                tx.onerror = (e) => rej(e.target.error);
             });
         }
 
         function readFileAsDataURL(file) {
-            return new Promise((resolve) => {
-                if (!file) return resolve(null);
+            return new Promise((res) => {
+                if (!file) return res(null);
                 const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
+                reader.onload = (e) => res(e.target.result);
                 reader.readAsDataURL(file);
             });
         }
 
-        /* ==========================================================================
-           STATE & LOCALSTORAGE
-           ========================================================================== */
+        // --- STATE ---
         let channels = JSON.parse(localStorage.getItem('yt_channels')) || [];
         let videos = JSON.parse(localStorage.getItem('yt_videos')) || [];
         let currentChannelId = localStorage.getItem('yt_current_channel') || '';
+        let activeTab = 'videos';
 
-        function initAndMigrateData() {
+        function initData() {
             if (channels.length === 0) {
                 channels.push({
-                    id: 'ch_default_' + Date.now(),
-                    name: 'Мой Главный Канал',
-                    avatar: 'https://via.placeholder.com/80/3f3f3f/ffffff?text=Avatar',
-                    banner: 'https://via.placeholder.com/800x180/272727/ffffff?text=Banner',
+                    id: 'ch_' + Date.now(),
+                    name: 'Мой Канал',
+                    avatar: '',
+                    banner: '',
                     subscribers: '100 тыс.'
                 });
-                localStorage.setItem('yt_channels', JSON.stringify(channels));
             }
-
             if (!currentChannelId || !channels.find(c => c.id === currentChannelId)) {
                 currentChannelId = channels[0].id;
-                localStorage.setItem('yt_current_channel', currentChannelId);
             }
-
-            let updated = false;
-            videos = videos.map((v, index) => {
-                if (!v.channelId) {
-                    v.channelId = channels[0].id;
-                    updated = true;
-                }
-                if (!v.id) {
-                    v.id = 'vid_' + Date.now() + '_' + index;
-                    updated = true;
-                }
-                return v;
-            });
-
-            if (updated) {
-                localStorage.setItem('yt_videos', JSON.stringify(videos));
-            }
+            saveState();
         }
-
-        initAndMigrateData();
-
-        /* ==========================================================================
-           UI RENDERERS & NAVIGATION
-           ========================================================================== */
-        let activeTab = 'videos';
 
         function saveState() {
             localStorage.setItem('yt_channels', JSON.stringify(channels));
@@ -644,30 +589,31 @@
             localStorage.setItem('yt_current_channel', currentChannelId);
         }
 
-        function populateChannelSelects() {
-            const mainSelect = document.getElementById('channelSelect');
-            const adminSelect = document.getElementById('adminChannelSelect');
-
-            mainSelect.innerHTML = '';
-            adminSelect.innerHTML = '';
-
-            channels.forEach(ch => {
-                const opt = document.createElement('option');
-                opt.value = ch.id;
-                opt.textContent = ch.name;
-                if (ch.id === currentChannelId) opt.selected = true;
-                mainSelect.appendChild(opt);
-
-                const optAdmin = opt.cloneNode(true);
-                adminSelect.appendChild(optAdmin);
-            });
-        }
-
         function getCurrentChannel() {
             return channels.find(c => c.id === currentChannelId) || channels[0];
         }
 
-        function renderChannelHeader() {
+        function populateSelects() {
+            const mainSel = document.getElementById('channelSelect');
+            const adminSel = document.getElementById('adminChannelSelect');
+            mainSel.innerHTML = '';
+            adminSel.innerHTML = '';
+
+            channels.forEach(ch => {
+                const opt1 = document.createElement('option');
+                opt1.value = ch.id;
+                opt1.textContent = ch.name;
+                if (ch.id === currentChannelId) opt1.selected = true;
+                mainSel.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = ch.id;
+                opt2.textContent = ch.name;
+                adminSel.appendChild(opt2);
+            });
+        }
+
+        function renderHeader() {
             const ch = getCurrentChannel();
             if (!ch) return;
             document.getElementById('chBanner').src = ch.banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=Banner';
@@ -676,15 +622,14 @@
             document.getElementById('chSubs').textContent = (ch.subscribers || '0') + ' подписчиков';
         }
 
-        function createVideoCard(video, showEditBtn = false) {
+        function createCard(video, isChannelView = false) {
             const card = document.createElement('div');
             card.className = 'video-card';
-
-            const thumbUrl = video.thumbnail || 'https://via.placeholder.com/320x180/272727/ffffff?text=No+Thumbnail';
+            const thumb = video.thumbnail || 'https://via.placeholder.com/320x180/272727/ffffff?text=No+Thumb';
 
             card.innerHTML = `
                 <div class="thumbnail-container">
-                    <img src="${thumbUrl}" class="thumbnail" alt="Thumb">
+                    <img src="${thumb}" class="thumbnail" alt="Thumb">
                 </div>
                 <div class="video-info">
                     <div class="video-title">${video.title}</div>
@@ -693,99 +638,83 @@
             `;
 
             card.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('btn-edit') && !e.target.classList.contains('btn-delete')) {
+                if (!e.target.classList.contains('btn-edit') && !e.target.classList.contains('btn-del')) {
                     playVideo(video.id);
                 }
             });
 
-            if (showEditBtn) {
+            if (isChannelView) {
                 const actions = document.createElement('div');
                 actions.className = 'card-actions';
                 
-                const editBtn = document.createElement('button');
-                editBtn.className = 'btn btn-sm btn-edit';
-                editBtn.textContent = '✏️ Изменить';
-                editBtn.addEventListener('click', () => openAdminModalForEdit(video.id));
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn btn-sm btn-edit';
+                btnEdit.textContent = '✏️';
+                btnEdit.addEventListener('click', () => editContent(video.id));
 
-                const delBtn = document.createElement('button');
-                delBtn.className = 'btn btn-sm btn-delete';
-                delBtn.style.marginLeft = '6px';
-                delBtn.textContent = '🗑️ Удалить';
-                delBtn.addEventListener('click', () => deleteContent(video.id));
+                const btnDel = document.createElement('button');
+                btnDel.className = 'btn btn-sm btn-danger btn-del';
+                btnDel.style.marginLeft = '6px';
+                btnDel.textContent = '🗑️';
+                btnDel.addEventListener('click', () => removeContent(video.id));
 
-                actions.appendChild(editBtn);
-                actions.appendChild(delBtn);
+                actions.appendChild(btnEdit);
+                actions.appendChild(btnDel);
                 card.appendChild(actions);
             }
 
             return card;
         }
 
-        function renderHomeFeed() {
+        function renderHome() {
             const grid = document.getElementById('homeVideoGrid');
             grid.innerHTML = '';
-            
             if (videos.length === 0) {
-                grid.innerHTML = '<p style="color: #aaa;">Пока нет загруженных видео.</p>';
+                grid.innerHTML = '<p style="color:#aaa;">Нет видео</p>';
                 return;
             }
-
-            videos.forEach(v => {
-                grid.appendChild(createVideoCard(v, false));
-            });
+            videos.forEach(v => grid.appendChild(createCard(v, false)));
         }
 
-        function renderChannelVideos() {
+        function renderChannel() {
             const grid = document.getElementById('channelVideoGrid');
             grid.innerHTML = '';
-
-            const filtered = videos.filter(v => v.channelId === currentChannelId && (v.type || 'video') === (activeTab === 'streams' ? 'stream' : 'video'));
+            const targetType = (activeTab === 'streams') ? 'stream' : 'video';
+            const filtered = videos.filter(v => v.channelId === currentChannelId && (v.type || 'video') === targetType);
 
             if (filtered.length === 0) {
-                grid.innerHTML = `<p style="color: #aaa;">На этом канале пока нет ${activeTab === 'videos' ? 'видео' : 'стримов'}.</p>`;
+                grid.innerHTML = `<p style="color:#aaa;">Раздел пуст</p>`;
                 return;
             }
-
-            filtered.forEach(v => {
-                grid.appendChild(createVideoCard(v, true));
-            });
+            filtered.forEach(v => grid.appendChild(createCard(v, true)));
         }
 
-        /* ==========================================================================
-           VIDEO PLAYER ACTIONS
-           ========================================================================== */
-        async function playVideo(videoId) {
-            const videoData = videos.find(v => v.id === videoId);
-            if (!videoData) return;
+        async function playVideo(id) {
+            const v = videos.find(item => item.id === id);
+            if (!v) return;
+            const modal = document.getElementById('playerModal');
+            const player = document.getElementById('mainVideoPlayer');
+            document.getElementById('playerTitle').textContent = v.title;
+            document.getElementById('playerStats').textContent = `${v.views} • ${v.date || 'Сегодня'}`;
 
-            const playerModal = document.getElementById('playerModal');
-            const videoElem = document.getElementById('mainVideoPlayer');
-
-            document.getElementById('playerTitle').textContent = videoData.title;
-            document.getElementById('playerStats').textContent = `${videoData.views} • ${videoData.date || 'Сегодня'}`;
-
-            const blob = await getVideoFile(videoId);
+            const blob = await getVideoFile(id);
             if (blob) {
-                videoElem.src = URL.createObjectURL(blob);
+                player.src = URL.createObjectURL(blob);
             } else {
-                videoElem.src = '';
-                alert('Видеофайл не найден в локальном хранилище.');
+                player.src = '';
+                alert('Видеофайл отсутствует');
             }
-
-            playerModal.classList.add('active');
+            modal.classList.add('active');
         }
 
         document.getElementById('closePlayerBtn').addEventListener('click', () => {
-            const playerModal = document.getElementById('playerModal');
-            const videoElem = document.getElementById('mainVideoPlayer');
-            videoElem.pause();
-            videoElem.src = '';
-            playerModal.classList.remove('active');
+            const player = document.getElementById('mainVideoPlayer');
+            player.pause();
+            player.src = '';
+            document.getElementById('playerModal').classList.remove('active');
         });
 
-        /* ==========================================================================
-           ADMIN PANEL: ADD / EDIT / DELETE CONTENT
-           ========================================================================== */
+        // --- ADMIN ACTIONS ---
         const adminModal = document.getElementById('adminModal');
 
         document.getElementById('openAdminBtn').addEventListener('click', () => {
@@ -799,14 +728,11 @@
             adminModal.classList.add('active');
         });
 
-        document.getElementById('closeAdminBtn').addEventListener('click', () => {
-            adminModal.classList.remove('active');
-        });
+        document.getElementById('closeAdminBtn').addEventListener('click', () => adminModal.classList.remove('active'));
 
-        function openAdminModalForEdit(videoId) {
-            const v = videos.find(item => item.id === videoId);
+        function editContent(id) {
+            const v = videos.find(item => item.id === id);
             if (!v) return;
-
             document.getElementById('modalTitle').textContent = 'Редактировать контент';
             document.getElementById('editVideoId').value = v.id;
             document.getElementById('adminChannelSelect').value = v.channelId || currentChannelId;
@@ -816,102 +742,77 @@
             document.getElementById('contentThumbnail').value = v.thumbnail || '';
             document.getElementById('contentThumbFile').value = '';
             document.getElementById('contentVideoFile').value = '';
-
             adminModal.classList.add('active');
         }
 
-        async function deleteContent(videoId) {
-            if (confirm('Вы уверены, что хотите удалить этот контент?')) {
-                videos = videos.filter(v => v.id !== videoId);
-                await deleteVideoFile(videoId);
+        async function removeContent(id) {
+            if (confirm('Удалить контент?')) {
+                videos = videos.filter(v => v.id !== id);
+                await deleteVideoFile(id);
                 saveState();
-                renderChannelVideos();
-                renderHomeFeed();
+                renderChannel();
+                renderHome();
             }
         }
 
         document.getElementById('saveContentBtn').addEventListener('click', async () => {
             const editId = document.getElementById('editVideoId').value;
-            const targetChannelId = document.getElementById('adminChannelSelect').value;
+            const chId = document.getElementById('adminChannelSelect').value;
             const type = document.getElementById('contentType').value;
             const title = document.getElementById('contentTitle').value.trim();
             const views = document.getElementById('contentViews').value.trim() || '0 просмотров';
-            let thumbnail = document.getElementById('contentThumbnail').value.trim();
+            let thumb = document.getElementById('contentThumbnail').value.trim();
 
-            if (!title) {
-                alert('Пожалуйста, введите название!');
-                return;
+            if (!title) return alert('Введите название!');
+
+            const thumbFile = document.getElementById('contentThumbFile').files[0];
+            if (thumbFile) {
+                const data = await readFileAsDataURL(thumbFile);
+                if (data) thumb = data;
             }
 
-            const thumbFileInput = document.getElementById('contentThumbFile');
-            if (thumbFileInput.files && thumbFileInput.files[0]) {
-                const fileData = await readFileAsDataURL(thumbFileInput.files[0]);
-                if (fileData) thumbnail = fileData;
-            }
-
-            const videoFileInput = document.getElementById('contentVideoFile');
-            const newVideoFile = videoFileInput.files[0];
+            const videoFile = document.getElementById('contentVideoFile').files[0];
 
             if (editId) {
-                const index = videos.findIndex(v => v.id === editId);
-                if (index !== -1) {
-                    videos[index].channelId = targetChannelId;
-                    videos[index].type = type;
-                    videos[index].title = title;
-                    videos[index].views = views;
-                    if (thumbnail) videos[index].thumbnail = thumbnail;
-
-                    if (newVideoFile) {
-                        await saveVideoFile(editId, newVideoFile);
-                    }
+                const idx = videos.findIndex(v => v.id === editId);
+                if (idx !== -1) {
+                    videos[idx].channelId = chId;
+                    videos[idx].type = type;
+                    videos[idx].title = title;
+                    videos[idx].views = views;
+                    if (thumb) videos[idx].thumbnail = thumb;
+                    if (videoFile) await saveVideoFile(editId, videoFile);
                 }
             } else {
-                const uniqueId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-
-                if (newVideoFile) {
-                    await saveVideoFile(uniqueId, newVideoFile);
-                }
-
-                const newVideoObj = {
-                    id: uniqueId,
-                    channelId: targetChannelId,
+                const newId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                if (videoFile) await saveVideoFile(newId, videoFile);
+                videos.push({
+                    id: newId,
+                    channelId: chId,
                     type: type,
                     title: title,
                     views: views,
-                    thumbnail: thumbnail || 'https://via.placeholder.com/320x180/272727/ffffff?text=No+Thumbnail',
+                    thumbnail: thumb || '',
                     date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
-                };
-
-                videos.push(newVideoObj);
+                });
             }
 
-            // Переключаем активный канал на тот, в который сохраняли
-            currentChannelId = targetChannelId;
-
-            // Переключаем вкладку под тип контента
-            if (type === 'stream' || type === 'streams') {
-                activeTab = 'streams';
-                tabStreams.classList.add('active');
-                tabVideos.classList.remove('active');
-            } else {
-                activeTab = 'videos';
-                tabVideos.classList.add('active');
-                tabStreams.classList.remove('active');
-            }
+            currentChannelId = chId;
+            activeTab = (type === 'stream') ? 'streams' : 'videos';
+            document.getElementById('tabVideos').classList.toggle('active', activeTab === 'videos');
+            document.getElementById('tabStreams').classList.toggle('active', activeTab === 'streams');
 
             saveState();
-            populateChannelSelects();
+            populateSelects();
             adminModal.classList.remove('active');
-            renderChannelHeader();
-            renderChannelVideos();
-            renderHomeFeed();
+            renderHeader();
+            renderChannel();
+            renderHome();
         });
 
-        /* ==========================================================================
-           CHANNEL MANAGEMENT (CREATE / EDIT / DELETE CHANNEL WITH IMAGE FILES)
-           ========================================================================== */
+        // --- CHANNEL ACTIONS ---
         const channelModal = document.getElementById('channelModal');
-        const deleteChannelBtn = document.getElementById('deleteChannelBtn');
+        const deleteChBtn = document.getElementById('deleteChannelBtn');
 
         document.getElementById('addChannelBtn').addEventListener('click', () => {
             document.getElementById('channelModalTitle').textContent = 'Создать новый канал';
@@ -922,14 +823,13 @@
             document.getElementById('newChAvatarFile').value = '';
             document.getElementById('newChBanner').value = '';
             document.getElementById('newChBannerFile').value = '';
-            deleteChannelBtn.style.display = 'none';
+            deleteChBtn.style.display = 'none';
             channelModal.classList.add('active');
         });
 
         document.getElementById('editChannelSettingsBtn').addEventListener('click', () => {
             const ch = getCurrentChannel();
             if (!ch) return;
-
             document.getElementById('channelModalTitle').textContent = 'Настройки канала';
             document.getElementById('editChannelId').value = ch.id;
             document.getElementById('newChName').value = ch.name;
@@ -938,91 +838,75 @@
             document.getElementById('newChAvatarFile').value = '';
             document.getElementById('newChBanner').value = ch.banner || '';
             document.getElementById('newChBannerFile').value = '';
-            deleteChannelBtn.style.display = 'block';
+            deleteChBtn.style.display = 'block';
             channelModal.classList.add('active');
         });
 
-        document.getElementById('closeChannelBtn').addEventListener('click', () => {
-            channelModal.classList.remove('active');
-        });
+        document.getElementById('closeChannelBtn').addEventListener('click', () => channelModal.classList.remove('active'));
 
         document.getElementById('saveChannelBtn').addEventListener('click', async () => {
             const editId = document.getElementById('editChannelId').value;
             const name = document.getElementById('newChName').value.trim();
             const subs = document.getElementById('newChSubs').value.trim() || '0';
-            
             let avatar = document.getElementById('newChAvatar').value.trim();
             let banner = document.getElementById('newChBanner').value.trim();
 
-            if (!name) {
-                alert('Введите название канала!');
-                return;
+            if (!name) return alert('Введите название!');
+
+            const avFile = document.getElementById('newChAvatarFile').files[0];
+            if (avFile) {
+                const res = await readFileAsDataURL(avFile);
+                if (res) avatar = res;
             }
 
-            const avatarFile = document.getElementById('newChAvatarFile').files[0];
-            if (avatarFile) {
-                const avatarData = await readFileAsDataURL(avatarFile);
-                if (avatarData) avatar = avatarData;
-            }
-
-            const bannerFile = document.getElementById('newChBannerFile').files[0];
-            if (bannerFile) {
-                const bannerData = await readFileAsDataURL(bannerFile);
-                if (bannerData) banner = bannerData;
+            const bnFile = document.getElementById('newChBannerFile').files[0];
+            if (bnFile) {
+                const res = await readFileAsDataURL(bnFile);
+                if (res) banner = res;
             }
 
             if (editId) {
-                const index = channels.findIndex(c => c.id === editId);
-                if (index !== -1) {
-                    channels[index].name = name;
-                    channels[index].subscribers = subs;
-                    if (avatar) channels[index].avatar = avatar;
-                    if (banner) channels[index].banner = banner;
+                const idx = channels.findIndex(c => c.id === editId);
+                if (idx !== -1) {
+                    channels[idx].name = name;
+                    channels[idx].subscribers = subs;
+                    if (avatar) channels[idx].avatar = avatar;
+                    if (banner) channels[idx].banner = banner;
                 }
             } else {
-                const newCh = {
-                    id: 'ch_' + Date.now(),
-                    name: name,
-                    subscribers: subs,
-                    avatar: avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=' + encodeURIComponent(name[0]),
-                    banner: banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=' + encodeURIComponent(name)
-                };
+                const newCh = { id: 'ch_' + Date.now(), name: name, subscribers: subs, avatar: avatar, banner: banner };
                 channels.push(newCh);
                 currentChannelId = newCh.id;
             }
 
             saveState();
-            populateChannelSelects();
-            renderChannelHeader();
-            renderChannelVideos();
+            populateSelects();
+            renderHeader();
+            renderChannel();
             channelModal.classList.remove('active');
         });
 
-        deleteChannelBtn.addEventListener('click', async () => {
+        deleteChBtn.addEventListener('click', async () => {
             const editId = document.getElementById('editChannelId').value;
             if (!editId) return;
-
-            if (confirm('Вы уверены, что хотите полностью удалить этот канал и весь его контент?')) {
-                const channelVideos = videos.filter(v => v.channelId === editId);
-                for (const v of channelVideos) {
-                    await deleteVideoFile(v.id);
-                }
+            if (confirm('Удалить канал и все его ролики?')) {
+                const chVids = videos.filter(v => v.channelId === editId);
+                for (const v of chVids) await deleteVideoFile(v.id);
                 videos = videos.filter(v => v.channelId !== editId);
-
                 channels = channels.filter(c => c.id !== editId);
 
                 if (channels.length > 0) {
                     currentChannelId = channels[0].id;
                 } else {
                     currentChannelId = '';
-                    initAndMigrateData();
+                    initData();
                 }
 
                 saveState();
-                populateChannelSelects();
-                renderChannelHeader();
-                renderChannelVideos();
-                renderHomeFeed();
+                populateSelects();
+                renderHeader();
+                renderChannel();
+                renderHome();
                 channelModal.classList.remove('active');
             }
         });
@@ -1030,41 +914,42 @@
         document.getElementById('channelSelect').addEventListener('change', (e) => {
             currentChannelId = e.target.value;
             saveState();
-            renderChannelHeader();
-            renderChannelVideos();
+            renderHeader();
+            renderChannel();
         });
 
-        /* ==========================================================================
-           TAB & VIEW SWITCHING
-           ========================================================================== */
-        const viewHome = document.getElementById('viewHome');
-        const viewChannel = document.getElementById('viewChannel');
-        const navHome = document.getElementById('navHome');
-        const navChannel = document.getElementById('navChannel');
-
+        // --- NAVIGATION ---
         function switchView(view) {
-            if (view === 'home') {
-                viewHome.style.display = 'block';
-                viewChannel.style.display = 'none';
-                navHome.classList.add('active');
-                navChannel.classList.remove('active');
-                renderHomeFeed();
-            } else {
-                viewHome.style.display = 'none';
-                viewChannel.style.display = 'block';
-                navHome.classList.remove('active');
-                navChannel.classList.add('active');
-                renderChannelHeader();
-                renderChannelVideos();
-            }
+            document.getElementById('viewHome').style.display = (view === 'home') ? 'block' : 'none';
+            document.getElementById('viewChannel').style.display = (view === 'channel') ? 'block' : 'none';
+            document.getElementById('navHome').classList.toggle('active', view === 'home');
+            document.getElementById('navChannel').classList.toggle('active', view === 'channel');
+            if (view === 'home') renderHome();
+            else { renderHeader(); renderChannel(); }
         }
 
         document.getElementById('goHomeBtn').addEventListener('click', () => switchView('home'));
-        navHome.addEventListener('click', () => switchView('home'));
-        navChannel.addEventListener('click', () => switchView('channel'));
+        document.getElementById('navHome').addEventListener('click', () => switchView('home'));
+        document.getElementById('navChannel').addEventListener('click', () => switchView('channel'));
 
-        const tabVideos = document.getElementById('tabVideos');
-        const tabStreams = document.getElementById('tabStreams');
+        document.getElementById('tabVideos').addEventListener('click', () => {
+            activeTab = 'videos';
+            document.getElementById('tabVideos').classList.add('active');
+            document.getElementById('tabStreams').classList.remove('active');
+            renderChannel();
+        });
 
-        tabVideos.addEventListener('click', () => {
-            activeTab = '
+        document.getElementById('tabStreams').addEventListener('click', () => {
+            activeTab = 'streams';
+            document.getElementById('tabStreams').classList.add('active');
+            document.getElementById('tabVideos').classList.remove('active');
+            renderChannel();
+        });
+
+        // --- INIT ---
+        initData();
+        populateSelects();
+        switchView('home');
+    </script>
+</body>
+</html>
