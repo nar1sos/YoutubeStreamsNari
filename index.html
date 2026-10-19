@@ -501,6 +501,74 @@
     </div>
 
     <script>
+        /* ==========================================================================
+           INDEXEDDB: ОПТИМИЗИРОВАННОЕ ХРАНИЛИЩЕ ДЛЯ КАРТИНОК И МЕДИА
+           ========================================================================== */
+        const DB_NAME = 'YouSimulatorOptDB';
+        const DB_VERSION = 1;
+        const STORE_MEDIA = 'media_assets';
+
+        function openDB() {
+            return new Promise((resolve) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_MEDIA)) {
+                        db.createObjectStore(STORE_MEDIA, { keyPath: 'key' });
+                    }
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        async function saveMediaAsset(key, dataUrlOrFile) {
+            if (!key || !dataUrlOrFile) return;
+            try {
+                const db = await openDB();
+                if (!db) return;
+                return new Promise((res) => {
+                    const tx = db.transaction(STORE_MEDIA, 'readwrite');
+                    tx.objectStore(STORE_MEDIA).put({ key: key, value: dataUrlOrFile });
+                    tx.oncomplete = () => res();
+                    tx.onerror = () => res();
+                });
+            } catch (err) {}
+        }
+
+        async function getMediaAsset(key) {
+            if (!key) return null;
+            if (key.startsWith('http://') || key.startsWith('https://') || key.startsWith('data:image')) {
+                return key; // Если это прямой URL или legacy base64
+            }
+            try {
+                const db = await openDB();
+                if (!db) return null;
+                return new Promise((res) => {
+                    const tx = db.transaction(STORE_MEDIA, 'readonly');
+                    const req = tx.objectStore(STORE_MEDIA).get(key);
+                    req.onsuccess = () => res(req.result ? req.result.value : null);
+                    req.onerror = () => res(null);
+                });
+            } catch (err) {
+                return null;
+            }
+        }
+
+        async function deleteMediaAsset(key) {
+            if (!key || key.startsWith('http')) return;
+            try {
+                const db = await openDB();
+                if (!db) return;
+                return new Promise((res) => {
+                    const tx = db.transaction(STORE_MEDIA, 'readwrite');
+                    tx.objectStore(STORE_MEDIA).delete(key);
+                    tx.oncomplete = () => res();
+                    tx.onerror = () => res();
+                });
+            } catch (err) {}
+        }
+
         function readFileAsDataURL(file) {
             return new Promise((res) => {
                 if (!file) return res(null);
@@ -511,11 +579,51 @@
             });
         }
 
+        /* ==========================================================================
+           STATE & LOCALSTORAGE (ТОЛЬКО ДЛЯ ЛЕГКИХ ТЕКСТОВЫХ ДАННЫХ)
+           ========================================================================== */
         let channels = JSON.parse(localStorage.getItem('yt_channels')) || [];
         let videos = JSON.parse(localStorage.getItem('yt_videos')) || [];
         let currentChannelId = localStorage.getItem('yt_current_channel') || '';
         let activeTab = 'videos';
         let draggedVideoId = null;
+
+        async function migrateLegacyHeavyData() {
+            // Переносим массивные Base64 строки из localStorage в IndexedDB
+            let channelsUpdated = false;
+            for (let ch of channels) {
+                if (ch.avatar && ch.avatar.startsWith('data:image')) {
+                    const key = 'avatar_' + ch.id;
+                    await saveMediaAsset(key, ch.avatar);
+                    ch.avatar = key;
+                    channelsUpdated = true;
+                }
+                if (ch.banner && ch.banner.startsWith('data:image')) {
+                    const key = 'banner_' + ch.id;
+                    await saveMediaAsset(key, ch.banner);
+                    ch.banner = key;
+                    channelsUpdated = true;
+                }
+            }
+
+            let videosUpdated = false;
+            for (let v of videos) {
+                if (!v.type) {
+                    v.type = 'video';
+                    videosUpdated = true;
+                }
+                if (v.thumbnail && v.thumbnail.startsWith('data:image')) {
+                    const key = 'thumb_' + v.id;
+                    await saveMediaAsset(key, v.thumbnail);
+                    v.thumbnail = key;
+                    videosUpdated = true;
+                }
+            }
+
+            if (channelsUpdated || videosUpdated) {
+                saveState();
+            }
+        }
 
         function initData() {
             if (channels.length === 0) {
@@ -530,14 +638,8 @@
             if (!currentChannelId || !channels.find(c => c.id === currentChannelId)) {
                 currentChannelId = channels[0].id;
             }
-
-            // Исправляем legacy данные без типа
-            videos = videos.map(v => {
-                if (!v.type) v.type = 'video';
-                return v;
-            });
-
             saveState();
+            migrateLegacyHeavyData();
         }
 
         function saveState() {
@@ -546,7 +648,7 @@
                 localStorage.setItem('yt_videos', JSON.stringify(videos));
                 localStorage.setItem('yt_current_channel', currentChannelId);
             } catch (e) {
-                alert('⚠️ Предупреждение: Память браузера переполнена! Попробуй использовать ссылки (URL) для обложек вместо тяжелых файлов.');
+                console.error("Storage error:", e);
             }
         }
 
@@ -575,11 +677,15 @@
             });
         }
 
-        function renderHeader() {
+        async function renderHeader() {
             const ch = getCurrentChannel();
             if (!ch) return;
-            document.getElementById('chBanner').src = ch.banner || 'https://via.placeholder.com/800x180/272727/ffffff?text=Banner';
-            document.getElementById('chAvatar').src = ch.avatar || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=Avatar';
+
+            const bannerUrl = await getMediaAsset(ch.banner);
+            const avatarUrl = await getMediaAsset(ch.avatar);
+
+            document.getElementById('chBanner').src = bannerUrl || 'https://via.placeholder.com/800x180/272727/ffffff?text=Banner';
+            document.getElementById('chAvatar').src = avatarUrl || 'https://via.placeholder.com/80/3f3f3f/ffffff?text=Avatar';
             document.getElementById('chName').textContent = ch.name;
             document.getElementById('chSubs').textContent = (ch.subscribers || '0') + ' подписчиков';
         }
@@ -593,17 +699,25 @@
                 card.setAttribute('draggable', 'true');
             }
 
-            const thumb = video.thumbnail || 'https://via.placeholder.com/320x180/272727/ffffff?text=No+Thumb';
+            const imgId = 'img_' + Math.random().toString(36).substr(2, 5);
 
             card.innerHTML = `
                 <div class="thumbnail-container">
-                    <img src="${thumb}" class="thumbnail" alt="Thumb">
+                    <img id="${imgId}" src="https://via.placeholder.com/320x180/272727/ffffff?text=Загрузка..." class="thumbnail" alt="Thumb">
                 </div>
                 <div class="video-info">
                     <div class="video-title">${video.title}</div>
                     <div class="video-stats">${video.views} • ${video.date || 'Недавно'}</div>
                 </div>
             `;
+
+            // Ленивая асинхронная подгрузка картинки
+            getMediaAsset(video.thumbnail).then(resolvedUrl => {
+                const imgElem = document.getElementById(imgId);
+                if (imgElem) {
+                    imgElem.src = resolvedUrl || 'https://via.placeholder.com/320x180/272727/ffffff?text=No+Thumb';
+                }
+            });
 
             if (isChannelView) {
                 card.addEventListener('dragstart', (e) => {
@@ -714,7 +828,7 @@
 
         document.getElementById('closeAdminBtn').addEventListener('click', () => adminModal.classList.remove('active'));
 
-        function editContent(id) {
+        async function editContent(id) {
             const v = videos.find(item => item.id === id);
             if (!v) return;
             document.getElementById('modalTitle').textContent = 'Редактировать контент';
@@ -723,13 +837,19 @@
             document.getElementById('contentType').value = v.type || 'video';
             document.getElementById('contentTitle').value = v.title;
             document.getElementById('contentViews').value = v.views;
-            document.getElementById('contentThumbnail').value = v.thumbnail || '';
             document.getElementById('contentThumbFile').value = '';
+            
+            const thumbUrl = await getMediaAsset(v.thumbnail);
+            document.getElementById('contentThumbnail').value = (thumbUrl && thumbUrl.startsWith('http')) ? thumbUrl : '';
             adminModal.classList.add('active');
         }
 
-        function removeContent(id) {
+        async function removeContent(id) {
             if (confirm('Точно удалить этот ролик/стрим?')) {
+                const targetVid = videos.find(v => v.id === id);
+                if (targetVid && targetVid.thumbnail) {
+                    await deleteMediaAsset(targetVid.thumbnail);
+                }
                 videos = videos.filter(v => v.id !== id);
                 saveState();
                 renderChannel();
@@ -744,7 +864,7 @@
                 const type = document.getElementById('contentType').value || 'video';
                 const title = document.getElementById('contentTitle').value.trim();
                 const views = document.getElementById('contentViews').value.trim() || '0 просмотров';
-                let thumb = document.getElementById('contentThumbnail').value.trim();
+                let thumbUrlOrKey = document.getElementById('contentThumbnail').value.trim();
 
                 if (!title) {
                     alert('Введите название!');
@@ -754,7 +874,11 @@
                 const thumbFile = document.getElementById('contentThumbFile').files[0];
                 if (thumbFile) {
                     const data = await readFileAsDataURL(thumbFile);
-                    if (data) thumb = data;
+                    if (data) {
+                        const mediaKey = 'thumb_' + (editId || ('vid_' + Date.now()));
+                        await saveMediaAsset(mediaKey, data);
+                        thumbUrlOrKey = mediaKey;
+                    }
                 }
 
                 if (editId) {
@@ -764,7 +888,7 @@
                         videos[idx].type = type;
                         videos[idx].title = title;
                         videos[idx].views = views;
-                        if (thumb) videos[idx].thumbnail = thumb;
+                        if (thumbUrlOrKey) videos[idx].thumbnail = thumbUrlOrKey;
                     }
                 } else {
                     const newId = 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
@@ -774,7 +898,7 @@
                         type: type,
                         title: title,
                         views: views,
-                        thumbnail: thumb || '',
+                        thumbnail: thumbUrlOrKey || '',
                         date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
                     });
                 }
@@ -813,16 +937,20 @@
             channelModal.classList.add('active');
         });
 
-        document.getElementById('editChannelSettingsBtn').addEventListener('click', () => {
+        document.getElementById('editChannelSettingsBtn').addEventListener('click', async () => {
             const ch = getCurrentChannel();
             if (!ch) return;
             document.getElementById('channelModalTitle').textContent = 'Настройки канала';
             document.getElementById('editChannelId').value = ch.id;
             document.getElementById('newChName').value = ch.name;
             document.getElementById('newChSubs').value = ch.subscribers || '0';
-            document.getElementById('newChAvatar').value = ch.avatar || '';
+            
+            const avatarUrl = await getMediaAsset(ch.avatar);
+            const bannerUrl = await getMediaAsset(ch.banner);
+
+            document.getElementById('newChAvatar').value = (avatarUrl && avatarUrl.startsWith('http')) ? avatarUrl : '';
             document.getElementById('newChAvatarFile').value = '';
-            document.getElementById('newChBanner').value = ch.banner || '';
+            document.getElementById('newChBanner').value = (bannerUrl && bannerUrl.startsWith('http')) ? bannerUrl : '';
             document.getElementById('newChBannerFile').value = '';
             deleteChBtn.style.display = 'block';
             channelModal.classList.add('active');
@@ -843,16 +971,26 @@
                     return;
                 }
 
+                const targetId = editId || ('ch_' + Date.now());
+
                 const avFile = document.getElementById('newChAvatarFile').files[0];
                 if (avFile) {
                     const res = await readFileAsDataURL(avFile);
-                    if (res) avatar = res;
+                    if (res) {
+                        const avKey = 'avatar_' + targetId;
+                        await saveMediaAsset(avKey, res);
+                        avatar = avKey;
+                    }
                 }
 
                 const bnFile = document.getElementById('newChBannerFile').files[0];
                 if (bnFile) {
                     const res = await readFileAsDataURL(bnFile);
-                    if (res) banner = res;
+                    if (res) {
+                        const bnKey = 'banner_' + targetId;
+                        await saveMediaAsset(bnKey, res);
+                        banner = bnKey;
+                    }
                 }
 
                 if (editId) {
@@ -864,7 +1002,7 @@
                         if (banner) channels[idx].banner = banner;
                     }
                 } else {
-                    const newCh = { id: 'ch_' + Date.now(), name: name, subscribers: subs, avatar: avatar, banner: banner };
+                    const newCh = { id: targetId, name: name, subscribers: subs, avatar: avatar, banner: banner };
                     channels.push(newCh);
                     currentChannelId = newCh.id;
                 }
@@ -883,7 +1021,18 @@
             const editId = document.getElementById('editChannelId').value;
             if (!editId) return;
             if (confirm('Удалить канал и все его ролики?')) {
+                const chVids = videos.filter(v => v.channelId === editId);
+                for (const v of chVids) {
+                    if (v.thumbnail) await deleteMediaAsset(v.thumbnail);
+                }
                 videos = videos.filter(v => v.channelId !== editId);
+                
+                const chObj = channels.find(c => c.id === editId);
+                if (chObj) {
+                    if (chObj.avatar) await deleteMediaAsset(chObj.avatar);
+                    if (chObj.banner) await deleteMediaAsset(chObj.banner);
+                }
+
                 channels = channels.filter(c => c.id !== editId);
 
                 if (channels.length > 0) {
